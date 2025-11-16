@@ -425,6 +425,9 @@ namespace BPSR_ZDPS
 
         public Dictionary<string, object> Attributes { get; set; } = new();
 
+        public delegate void SkillActivatedEventHandler(object sender, SkillActivatedEventArgs e);
+        public event SkillActivatedEventHandler SkillActivated;
+
         public object Clone()
         {
             var cloned = this.MemberwiseClone();
@@ -438,6 +441,11 @@ namespace BPSR_ZDPS
                 ((Entity)cloned).SkillStats.AddOrUpdate(skillStat.Key, (CombatStats2)skillStat.Value.Clone(), (key, value) => (CombatStats2)skillStat.Value.Clone());
             }
             return cloned;
+        }
+
+        public void RemoveEventHandlers()
+        {
+            SkillActivated = null;
         }
 
         [JsonConstructor]
@@ -570,9 +578,9 @@ namespace BPSR_ZDPS
             {
                 var combatStats = new CombatStats2();
 
-                if (HelperMethods.DataTables.Skills.Data.ContainsKey(skillId.ToString()))
+                if (HelperMethods.DataTables.Skills.Data.TryGetValue(skillId.ToString(), out var skill))
                 {
-                    combatStats.SetName(HelperMethods.DataTables.Skills.Data[skillId.ToString()].Name);
+                    combatStats.SetName(skill.Name);
                 }
 
                 combatStats.RegisterActivation();
@@ -584,6 +592,12 @@ namespace BPSR_ZDPS
             }
 
             TotalCasts++;
+            OnSkillActivated(new SkillActivatedEventArgs { SkillId = skillId, ActivationDateTime = DateTime.Now });
+        }
+
+        protected virtual void OnSkillActivated(SkillActivatedEventArgs e)
+        {
+            SkillActivated?.Invoke(this, e);
         }
 
         public void RegisterSkillData(ESkillType skillType, int skillId, long value, bool isCrit, bool isLucky, long hpLessenValue, bool isCauseLucky, bool isDead = false)
@@ -594,9 +608,9 @@ namespace BPSR_ZDPS
 
                 combatStats.SetSkillType(skillType);
 
-                if (HelperMethods.DataTables.Skills.Data.ContainsKey(skillId.ToString()))
+                if (HelperMethods.DataTables.Skills.Data.TryGetValue(skillId.ToString(), out var skill))
                 {
-                    combatStats.SetName(HelperMethods.DataTables.Skills.Data[skillId.ToString()].Name);
+                    combatStats.SetName(skill.Name);
                 }
 
                 combatStats.AddData(value, isCrit, isLucky, hpLessenValue, isCauseLucky, isDead);
@@ -823,6 +837,12 @@ namespace BPSR_ZDPS
                 }
             }
         }
+    }
+
+    public class SkillActivatedEventArgs : EventArgs
+    {
+        public int SkillId { get; set; }
+        public DateTime ActivationDateTime { get; set; }
     }
 
     public enum ESkillType : int
