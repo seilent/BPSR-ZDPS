@@ -646,7 +646,7 @@ namespace BPSR_ZDPS
 
             if (attackerType == EEntityType.EntMonster)
             {
-                // TODO: Track NPC healing totals?
+                TotalNpcHealing += (ulong)damage;
             }
             else
             {
@@ -669,7 +669,7 @@ namespace BPSR_ZDPS
 
             if (attackerType == EEntityType.EntMonster)
             {
-                // TODO: Track NPC overhealing totals?
+                TotalNpcOverhealing += (ulong)overhealing;
             }
             else
             {
@@ -1253,17 +1253,6 @@ namespace BPSR_ZDPS
             return value;
         }
 
-        public T GetAttrKV<T>(string key) where T : struct
-        {
-            var value = Attributes.TryGetValue(key, out var val) ? val : null;
-            if (typeof(T) == typeof(long))
-            {
-                //return ((T)(int)value);
-            }
-
-            return (T)value;
-        }
-
         public bool IsHpUpdatedHandlerSubscribed(HpUpdatedEventHandler handler)
         {
             Delegate[] invocationList = HpUpdated?.GetInvocationList();
@@ -1783,50 +1772,6 @@ namespace BPSR_ZDPS
                     BuffAbilitySubType = buffTableData.BuffAbilitySubType;
                 }
             }
-        }
-    }
-
-    public class CombatStats
-    {
-        public EDamageSource damageSource;
-        public bool isMiss;
-        public bool isCrit;
-        public EDamageType damageType;
-        public int type_flag;
-        public long value;
-        public long actual_value;
-        public long lucky_value;
-        public long hp_lessen_value;
-        public long shield_lessen_value;
-        public long attacker_uuid;
-        public int owner_id;
-        public int owner_level;
-        public int owner_stage;
-        public int hit_event_id;
-        public bool is_normal;
-        public bool is_dead;
-        public EDamageProperty property;
-        public Vector3 damage_pos;
-        //...
-        public EDamageMode damage_mode;
-
-        public DateTime? StartTime = null;
-        public DateTime? EndTime = null;
-
-        public double GetValuePerSecond()
-        {
-            if (StartTime != null && EndTime != null && StartTime != EndTime)
-            {
-                var seconds = (EndTime.Value - StartTime.Value).TotalSeconds;
-                return seconds > 0 ? Math.Round(value / seconds, 2) : 0;
-            }
-
-            return 0;
-        }
-
-        public void AddData()
-        {
-
         }
     }
 
