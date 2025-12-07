@@ -130,6 +130,11 @@ namespace BPSR_ZDPS
             int place = Convert.ToInt32(Math.Floor(Math.Log(absoluteValue, 1000)));
             double shortNumber = Math.Round(absoluteValue / Math.Pow(1000, place), 2);
 
+            if (place < 0 || place > suf.Length)
+            {
+                return $"{value}";
+            }
+
             if (Settings.Instance.UseShortWidthNumberFormatting)
             {
                 return place == 0 ? ((long)value).ToString() : shortNumber.ToString($"N2") + suf[place];

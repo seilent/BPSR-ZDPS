@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using BPSR_ZDPS.DataTypes;
 using GLFWwindowPtr = Hexa.NET.GLFW.GLFWwindowPtr;
+using Hexa.NET.ImPlot;
 
 namespace BPSR_ZDPS
 {
@@ -92,6 +93,10 @@ namespace BPSR_ZDPS
 
             var guiContext = ImGui.CreateContext();
             ImGui.SetCurrentContext(guiContext);
+            ImPlot.SetImGuiContext(guiContext);
+            
+            var guiPlotContext = ImPlot.CreateContext();
+            ImPlot.SetCurrentContext(guiPlotContext);
 
             // Setup ImGui config.
             var io = ImGui.GetIO();
@@ -181,6 +186,7 @@ namespace BPSR_ZDPS
 
                 RenderWindowList();
                 //ImGui.ShowDemoWindow();
+                ImPlot.ShowDemoWindow();
 
                 ImGui.Render();
                 ImGui.EndFrame();
@@ -226,6 +232,7 @@ namespace BPSR_ZDPS
             ImGuiImplD3D11.SetCurrentContext(null);
             ImGuiImplGLFW.Shutdown();
             ImGuiImplGLFW.SetCurrentContext(null);
+            ImPlot.DestroyContext();
             ImGui.DestroyContext();
             manager.Dispose();
 

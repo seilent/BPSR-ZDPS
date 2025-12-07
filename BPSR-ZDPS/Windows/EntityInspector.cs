@@ -1,5 +1,6 @@
 ﻿using BPSR_ZDPS.DataTypes;
 using Hexa.NET.ImGui;
+using Hexa.NET.ImPlot;
 using Silk.NET.Core.Native;
 using System;
 using System.Collections.Generic;
@@ -30,6 +31,14 @@ namespace BPSR_ZDPS.Windows
 
         public ETableFilterMode TableFilterMode = ETableFilterMode.SkillsDamage;
 
+        // Graph storage variables
+        static bool HasLoadedGraphsData = false;
+        static double[] SkillSnapshotTimestampSeconds = [];
+        static double[] SkillSnapshotsDamage = [];
+        static List<double> SkillSnapshotsDamageCumulative = new();
+        static string[] SkillSnapshotsNames = [];
+        static float[] SkillSnapshotsHits = [];
+
         public enum ETableFilterMode : int
         {
             SkillsDamage,
@@ -37,6 +46,7 @@ namespace BPSR_ZDPS.Windows
             SkillsTaken,
             Attributes,
             Buffs,
+            Graphs,
             Debug
         }
 
@@ -352,7 +362,7 @@ namespace BPSR_ZDPS.Windows
 
                 ImGui.Separator();
 
-                string[] FilterButtons = { "Damage", "Healing", "Taken", "Attributes", "Buffs", "Debug" };
+                string[] FilterButtons = { "Damage", "Healing", "Taken", "Attributes", "Buffs", "Graphs", "Debug" };
 
                 for (int filerBtnIdx = 0; filerBtnIdx < FilterButtons.Length; filerBtnIdx++)
                 {
@@ -762,6 +772,95 @@ namespace BPSR_ZDPS.Windows
 
                     ImGui.PopStyleVar();
                 }
+                else if (TableFilterMode == ETableFilterMode.Graphs)
+                {
+                    if (LoadedEntity.DamageStats.SkillSnapshots.Count > 0)
+                    {
+                        // TODO: Optimize all of this, it's just made to be functional right now
+                        var startTime = LoadedEntity.DamageStats.StartTime;
+
+                        if (HasLoadedGraphsData && LoadedEntity.DamageStats.SkillSnapshots.Count != SkillSnapshotsDamage.Length)
+                        {
+                            // We're likely watching an entity live so we need to keep updating their data live
+                            // Currently it's going to be a very rough and poor performance mess but at least it's only executed on this one tab
+                            HasLoadedGraphsData = false;
+                        }
+                        if (!HasLoadedGraphsData)
+                        {
+                            SkillSnapshotsDamageCumulative.Clear();
+
+                            HasLoadedGraphsData = true;
+
+                            SkillSnapshotTimestampSeconds = LoadedEntity.DamageStats.SkillSnapshots.AsValueEnumerable().Select(x => x.Timestamp.Value.Subtract(startTime.Value).TotalSeconds).ToArray();
+                            SkillSnapshotsDamage = LoadedEntity.DamageStats.SkillSnapshots.AsValueEnumerable().Select(x => (double)x.Value).ToArray();
+
+                            double lastAdded = 0;
+                            foreach (var value in SkillSnapshotsDamage)
+                            {
+                                SkillSnapshotsDamageCumulative.Add(lastAdded + value);
+                                lastAdded = lastAdded + value;
+                            }
+
+                            SkillSnapshotsNames = LoadedEntity.SkillStats.AsValueEnumerable().Select(x => x.Value.Name ?? "").ToArray();
+                            SkillSnapshotsHits = LoadedEntity.SkillStats.AsValueEnumerable().Select(x => (float)x.Value.HitsCount).ToArray();
+                        }
+
+                        if (ImPlot.BeginPlot("Total Damage Over Time"))
+                        {
+                            ImPlot.SetupAxes("Time (Encounter Duration In Seconds)", "Damage", ImPlotAxisFlags.AutoFit, ImPlotAxisFlags.AutoFit);
+
+                            unsafe
+                            {
+                                ImPlot.SetupAxisFormat(ImAxis.Y1, (value, buff, size, user_data) =>
+                                {
+                                    string fmt = Utils.NumberToShorthand((double)value);
+                                    fixed (byte* src = Encoding.UTF8.GetBytes(fmt))
+                                    {
+                                        Buffer.MemoryCopy(src, buff, size, fmt.Length + 1);
+                                        return fmt.Length + 1;
+                                    }
+                                });
+                            }
+
+                            //ImPlot.FitPointY(SkillSnapshotsDamage.Max());
+                            ImPlot.PlotBars("Bars", ref SkillSnapshotTimestampSeconds[0], ref SkillSnapshotsDamageCumulative.ToArray()[0], SkillSnapshotsDamage.Length, 1);
+                            ImPlot.PlotLine("Line", ref SkillSnapshotTimestampSeconds[0], ref SkillSnapshotsDamageCumulative.ToArray()[0], SkillSnapshotsDamage.Length);
+
+                            ImPlot.EndPlot();
+                        }
+
+                        if (ImPlot.BeginPlot("Damage Per Second Over Time"))
+                        {
+                            ImPlot.SetupAxes("Time (Encounter Duration In Seconds)", "Damage Per Second", ImPlotAxisFlags.AutoFit, ImPlotAxisFlags.AutoFit);
+
+                            unsafe
+                            {
+                                ImPlot.SetupAxisFormat(ImAxis.X1, (value, buff, size, user_data) =>
+                                {
+                                    string fmt = Utils.NumberToShorthand((double)value);
+                                    fixed (byte* src = Encoding.UTF8.GetBytes(fmt))
+                                    {
+                                        Buffer.MemoryCopy(src, buff, size, fmt.Length + 1);
+                                        return fmt.Length + 1;
+                                    }
+                                });
+                            }
+
+                            ImPlot.PlotBars("Bars", ref SkillSnapshotTimestampSeconds[0], ref SkillSnapshotsDamage[0], SkillSnapshotsDamage.Length, 1);
+                            ImPlot.PlotLine("Line", ref SkillSnapshotTimestampSeconds[0], ref SkillSnapshotsDamage[0], SkillSnapshotsDamage.Length);
+
+                            ImPlot.EndPlot();
+                        }
+
+                        if (ImPlot.BeginPlot("Hits By Source", new Vector2(-1, 520), ImPlotFlags.NoMouseText))
+                        {
+                            ImPlot.SetupAxes("", "", ImPlotAxisFlags.NoDecorations | ImPlotAxisFlags.AutoFit, ImPlotAxisFlags.NoDecorations | ImPlotAxisFlags.AutoFit);
+                            ImPlot.SetupLegend(ImPlotLocation.West, ImPlotLegendFlags.Outside);
+                            ImPlot.PlotPieChart(SkillSnapshotsNames, ref SkillSnapshotsHits[0], SkillSnapshotsNames.Length, 0, 0, 1, ImPlotPieChartFlags.IgnoreHidden);
+                            ImPlot.EndPlot();
+                        }
+                    }
+                }
                 else if (TableFilterMode == ETableFilterMode.Debug)
                 {
                     ImGui.Text($"UUID: {LoadedEntity.UUID}");
@@ -826,6 +925,13 @@ namespace BPSR_ZDPS.Windows
         public void LoadEntity(Entity entity)
         {
             LoadedEntity = entity;
+
+            HasLoadedGraphsData = false;
+            SkillSnapshotTimestampSeconds = [];
+            SkillSnapshotsDamage = [];
+            SkillSnapshotsDamageCumulative = new();
+            SkillSnapshotsNames = [];
+            SkillSnapshotsHits = [];
         }
     }
 }
