@@ -768,7 +768,7 @@ namespace BPSR_ZDPS.Windows
                                     ImGui.Text("Deduplication Server URL: ");
                                     ImGui.SameLine();
                                     ImGui.SetNextItemWidth(-1);
-                                    ImGui.InputText("##WebhookReportsDeduplicationServerUrl", ref webhookReportsDeduplicationServerUrl, 512);
+                                    ImGui.InputText("##WebhookReportsDeduplicationServerHost", ref webhookReportsDeduplicationServerUrl, 512);
                                     ImGui.Indent();
                                     ImGui.BeginDisabled(true);
                                     ImGui.TextWrapped("The Discord Deduplication Server URL to prevent duplicate reports with.");
@@ -968,7 +968,7 @@ namespace BPSR_ZDPS.Windows
             minimumPlayerCountToCreateReport = Settings.Instance.MinimumPlayerCountToCreateReport;
             webhookReportsEnabled = Settings.Instance.WebhookReportsEnabled;
             webhookReportsMode = Settings.Instance.WebhookReportsMode;
-            webhookReportsDeduplicationServerUrl = Settings.Instance.WebhookReportsDeduplicationServerUrl;
+            webhookReportsDeduplicationServerUrl = Settings.Instance.WebhookReportsDeduplicationServerHost;
             webhookReportsDiscordUrl = Settings.Instance.WebhookReportsDiscordUrl;
             webhookReportsCustomUrl = Settings.Instance.WebhookReportsCustomUrl;
 
@@ -1026,7 +1026,7 @@ namespace BPSR_ZDPS.Windows
             Settings.Instance.MinimumPlayerCountToCreateReport = minimumPlayerCountToCreateReport;
             Settings.Instance.WebhookReportsEnabled = webhookReportsEnabled;
             Settings.Instance.WebhookReportsMode = webhookReportsMode;
-            Settings.Instance.WebhookReportsDeduplicationServerUrl = webhookReportsDeduplicationServerUrl;
+            Settings.Instance.WebhookReportsDeduplicationServerHost = webhookReportsDeduplicationServerUrl;
             Settings.Instance.WebhookReportsDiscordUrl = webhookReportsDiscordUrl;
             Settings.Instance.WebhookReportsCustomUrl = webhookReportsCustomUrl;
 

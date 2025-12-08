@@ -39,7 +39,7 @@ public class Settings
     public int MinimumPlayerCountToCreateReport { get; set; } = 0;
     public bool WebhookReportsEnabled { get; set; } = false;
     public EWebhookReportsMode WebhookReportsMode { get; set; } = EWebhookReportsMode.Discord;
-    public string WebhookReportsDeduplicationServerUrl { get; set; } = "http://localhost:5146";
+    public string WebhookReportsDeduplicationServerHost { get; set; } = "https://zdps-webfunc.vercel.app";
     public string WebhookReportsDiscordUrl { get; set; } = "";
     public string WebhookReportsCustomUrl { get; set; } = "";
 

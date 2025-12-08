@@ -52,11 +52,12 @@ namespace BPSR_ZDPS.Web
                     {
                         // Construct url for going to the deduplication server
                         var discordWebHookInfo = Utils.SplitAndValidateDiscordWebhook(Settings.Instance.WebhookReportsDiscordUrl);
-                        url = $"{Settings.Instance.WebhookReportsDeduplicationServerUrl}/report/discord/{discordWebHookInfo.Value.id}/{discordWebHookInfo.Value.token}";
+                        url = $"{Settings.Instance.WebhookReportsDeduplicationServerHost}/report/discord/{discordWebHookInfo.Value.id}/{discordWebHookInfo.Value.token}";
                     }
                     else if (Settings.Instance.WebhookReportsMode == EWebhookReportsMode.DiscordDeduplication)
                     {
-                        var canSubmit = await CanSubmitEncounterReport(encounter);
+                        var discordWebHookInfo = Utils.SplitAndValidateDiscordWebhook(Settings.Instance.WebhookReportsDiscordUrl);
+                        var canSubmit = await CanSubmitEncounterReport(teamId, discordWebHookInfo.Value.id);
                         
                         if (canSubmit)
                         {
@@ -91,13 +92,11 @@ namespace BPSR_ZDPS.Web
             }
         }
 
-        public static async Task<bool> CanSubmitEncounterReport(Encounter encounter)
+        public static async Task<bool> CanSubmitEncounterReport(ulong teamId, string id)
         {
             try
             {
-                var teamId = Utils.CreateZTeamId(encounter);
-
-                var url = $"{Settings.Instance.WebhookReportsDeduplicationServerUrl}/dedupecheck/{teamId}";
+                var url = $"{Settings.Instance.WebhookReportsDeduplicationServerHost}/dedupecheck/{id}/{teamId}";
                 var result = await HttpClient.GetAsync(url);
                 var dedupeResp = await result.Content.ReadFromJsonAsync<DedupeResp>();
 
