@@ -1,9 +1,12 @@
-﻿using Hexa.NET.ImGui;
+﻿using BPSR_ZDPS.DataTypes.Modules;
+using Hexa.NET.ImGui;
 using Newtonsoft.Json;
 using Serilog;
+using System.Buffers.Text;
 using System.Collections.Frozen;
 using System.Diagnostics;
 using System.Numerics;
+using System.Text;
 using ZLinq;
 using Zproto;
 
@@ -22,12 +25,13 @@ namespace BPSR_ZDPS
         private static int NumGuardModules = 0;
         private static string ModSavePath => Path.Combine(Utils.DATA_DIR_NAME, "ModulesSaveData.json");
 
-        private static List<ModStatInfo> CurrentStatPriority = [];
+        private static SolverConfig SolverConfig = new SolverConfig();
         private static ModStatInfo PendingStatToAdd = null;
         private static List<ModComboResult> BestModResults = [];
         private static bool ShouldBlockMainUI = false;
         private static bool IsCalculating = false;
         private static Task ModuleCalcTask;
+        private static string CurrentPresetString = "";
         static int RunOnceDelayed = 0;
 
         public static List<long> FilteredModules = [];
@@ -129,12 +133,35 @@ namespace BPSR_ZDPS
 
                     if (ImGui.BeginTabItem("Settings"))
                     {
+                        //if (ImGui.CollapsingHeader("Presets"))
+                        {
+                            ImGui.AlignTextToFramePadding();
+                            ImGui.Text("Preset Share Code: ");
+                            ImGui.SameLine();
+                            ImGui.SetNextItemWidth(400);
+                            if (ImGui.InputText("##PresetCode", ref CurrentPresetString, 1000, ImGuiInputTextFlags.AutoSelectAll))
+                            {
+
+                            }
+                            ImGui.SameLine();
+                            if (ImGui.Button("Apply"))
+                            {
+                                SolverConfig.FromString(CurrentPresetString);
+                            }
+                            ImGui.SameLine();
+                            if (ImGui.Button("Copy"))
+                            {
+                                ImGui.SetClipboardText(CurrentPresetString);
+                            }
+                        }
+
                         ImGui.Text("Settings will go here.");
                         var itsEvieFrFr = ImageHelper.LoadTexture(Path.Combine(ModuleImgBasePath, "Missing.png"));
                         if (itsEvieFrFr.HasValue)
                         {
                             ImGui.Image(itsEvieFrFr.Value, new Vector2(200, 200));
                         }
+
                         ImGui.EndTabItem();
                     }
 
@@ -158,22 +185,30 @@ namespace BPSR_ZDPS
             ImGui.PopClipRect();
             ImGui.SetCursorPosY(85);
 
+            var configChanged = false;
             ImGui.BeginChild("LeftSection", new Vector2(leftWidth, contentRegion.Y - 55), ImGuiChildFlags.Borders);
             ImGui.SeparatorText("Stat Priority");
             ImGui.Spacing();
 
             int idToRemove = -1;
-            for (int i = 0; i < CurrentStatPriority.Count; i++)
+            for (int i = 0; i < SolverConfig.StatPrioritys.Count; i++)
             {
-                if (DrawStatFilter(i))
+                var result = DrawStatFilter(i);
+                if (result.Item1)
                 {
                     idToRemove = i;
+                    configChanged = true;
+                }
+
+                if (result.Item2)
+                {
+                    configChanged = true;
                 }
             }
 
             if (idToRemove != -1)
             {
-                CurrentStatPriority.RemoveAt(idToRemove);
+                SolverConfig.StatPrioritys.RemoveAt(idToRemove);
             }
 
             ImGui.EndChild();
@@ -182,7 +217,7 @@ namespace BPSR_ZDPS
             ImGui.SetNextItemWidth(leftWidth - 55);
             if (ImGui.BeginCombo("##Stat", $"       {PendingStatToAdd.Name}"))
             {
-                foreach (var item in ModStatInfos.AsValueEnumerable().Where(x => !CurrentStatPriority.Any(y => y.StatId == x.Key)))
+                foreach (var item in ModStatInfos.AsValueEnumerable().Where(x => !SolverConfig.StatPrioritys.Any(y => y.Id == x.Key)))
                 {
                     //ImGui.BeginGroup();
                     ImGui.Image(item.Value.IconRef.Value, new Vector2(22, 22));
@@ -201,11 +236,17 @@ namespace BPSR_ZDPS
             ImGui.Image(PendingStatToAdd.IconRef.Value, new Vector2(22, 22));
 
             ImGui.SetCursorPos(pos + new Vector2(leftWidth - 50, 0));
-            var isAlreadyAdded = CurrentStatPriority.Contains(PendingStatToAdd);
+            var isAlreadyAdded = SolverConfig.StatPrioritys.Any(x => x.Id == PendingStatToAdd.StatId);
             ImGui.BeginDisabled(isAlreadyAdded);
             if (ImGui.Button("Add", new Vector2(50, 0)))
             {
-                CurrentStatPriority.Add(PendingStatToAdd);
+                SolverConfig.StatPrioritys.Add(new StatPrio()
+                {
+                    Id = PendingStatToAdd.StatId,
+                    MinLevel = 0
+                });
+
+                configChanged = true;
             }
 
             if (isAlreadyAdded)
@@ -213,6 +254,11 @@ namespace BPSR_ZDPS
                 ImGui.SetItemTooltip("This stat is already added, please select another one.");
             }
             ImGui.EndDisabled();
+
+            if (configChanged)
+            {
+                CurrentPresetString = SolverConfig.SaveToString();
+            }
 
             ImGui.SetCursorPosX(leftWidth + 8);
             ImGui.SetCursorPosY(58);
@@ -281,11 +327,12 @@ namespace BPSR_ZDPS
             }
         }
 
-        private static bool DrawStatFilter(int i)
+        private static (bool, bool) DrawStatFilter(int i)
         {
             var pos = ImGui.GetCursorPos();
-            var statInfo = CurrentStatPriority[i];
+            var statInfo = SolverConfig.StatPrioritys[i];
             bool shouldRemove = false;
+            bool wasChanged = false;
 
             ImGui.SetCursorPos(pos + new Vector2(0, 2));
             ImGui.PushFont(HelperMethods.Fonts["FASIcons"], 13.0f);
@@ -293,29 +340,32 @@ namespace BPSR_ZDPS
             if (ImGui.Button($"{FASIcons.AngleUp}##{i}", new Vector2(32, 16)))
             {
                 var toMoveTo = i - 1;
-                var tempStat = CurrentStatPriority[toMoveTo];
-                CurrentStatPriority[toMoveTo] = CurrentStatPriority[i];
-                CurrentStatPriority[i] = tempStat;
+                var tempStat = SolverConfig.StatPrioritys[toMoveTo];
+                SolverConfig.StatPrioritys[toMoveTo] = SolverConfig.StatPrioritys[i];
+                SolverConfig.StatPrioritys[i] = tempStat;
+                wasChanged = true;
             }
             ImGui.EndDisabled();
 
-            ImGui.BeginDisabled(i == CurrentStatPriority.Count() - 1);
+            ImGui.BeginDisabled(i == SolverConfig.StatPrioritys.Count() - 1);
             if (ImGui.Button($"{FASIcons.AngleDown}##{i}", new Vector2(32, 16)))
             {
                 var toMoveTo = i + 1;
-                var tempStat = CurrentStatPriority[toMoveTo];
-                CurrentStatPriority[toMoveTo] = CurrentStatPriority[i];
-                CurrentStatPriority[i] = tempStat;
+                var tempStat = SolverConfig.StatPrioritys[toMoveTo];
+                SolverConfig.StatPrioritys[toMoveTo] = SolverConfig.StatPrioritys[i];
+                SolverConfig.StatPrioritys[i] = tempStat;
+                wasChanged = true;
             }
             ImGui.EndDisabled();
             ImGui.PopFont();
 
+            var stat = ModStatInfos[SolverConfig.StatPrioritys[i].Id];
             ImGui.SetCursorPos(pos + new Vector2(40, 4));
-            ImGui.Image(statInfo.IconRef.Value, new Vector2(32, 32));
+            ImGui.Image(stat.IconRef.Value, new Vector2(32, 32));
 
             ImGui.SetCursorPos(pos + new Vector2(80, 9));
             ImGui.PushFont(HelperMethods.Fonts["Segoe-Bold"], ImGui.GetFontSize());
-            ImGui.TextUnformatted(statInfo.Name);
+            ImGui.TextUnformatted(stat.Name);
             ImGui.PopFont();
 
             var availSize = ImGui.GetContentRegionAvail();
@@ -332,7 +382,7 @@ namespace BPSR_ZDPS
             ImGui.SetCursorPos(pos + new Vector2(0, 40));
             ImGui.Separator();
 
-            return shouldRemove;
+            return (shouldRemove, wasChanged);
         }
 
         private static void DrawIconCombo()
@@ -792,7 +842,7 @@ namespace BPSR_ZDPS
             var modules = new List<long>();
             foreach (var item in PlayerModData.ModulesPackage.Items)
             {
-                if (item.Value.ModNewAttr.ModParts.Any(x => CurrentStatPriority.Any(y => y.StatId == x)))
+                if (item.Value.ModNewAttr.ModParts.Any(x => SolverConfig.StatPrioritys.Any(y => y.Id == x)))
                 {
                     modules.Add(item.Key);
                 }
@@ -809,11 +859,11 @@ namespace BPSR_ZDPS
 
         private static ushort GetStatMultiplier(int statId)
         {
-            for (int i = 0; i < CurrentStatPriority.Count; i++)
+            for (int i = 0; i < SolverConfig.StatPrioritys.Count; i++)
             {
-                if (CurrentStatPriority[i].StatId == statId)
+                if (SolverConfig.StatPrioritys[i].Id == statId)
                 {
-                    return (ushort)(CurrentStatPriority.Count - i);
+                    return (ushort)(SolverConfig.StatPrioritys.Count - i);
                 }
             }
 
@@ -866,14 +916,20 @@ namespace BPSR_ZDPS
         public int Value;
     }
 
-    public class PlayerModDataSave
+    public class StatPrio
     {
-        public Package ModulesPackage;
-        public Mod Mod;
+        public int Id;
+        public int MinLevel;
     }
 
-    public class SolverConfig
+    public class Preset
     {
-        public byte[] Qualities;
+        public string Name;
+        public SolverConfig Config;
+    }
+
+    public class ModuleWindowSettings
+    {
+        public List<Preset> Presets = [];
     }
 }

@@ -119,6 +119,7 @@ public class WindowSettings : ICloneable
     public RaidManagerCooldownsWindowSettings RaidManagerCooldowns { get; set; } = new();
     public EntityCacheViewerWindowSettings EntityCacheViewer { get; set; } = new();
     public SpawnTrackerWindowSettings SpawnTracker { get; set; } = new();
+    public ModuleWindowSettings ModuleWindow { get; set; } = new();
 
     public object Clone()
     {
