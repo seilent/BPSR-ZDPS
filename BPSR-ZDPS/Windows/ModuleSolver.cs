@@ -1,6 +1,7 @@
 ﻿using BPSR_ZDPS.DataTypes;
 using BPSR_ZDPS.DataTypes.Modules;
 using BPSR_ZDPS.Managers;
+using Hexa.NET.GLFW;
 using Hexa.NET.ImGui;
 using Hexa.NET.ImGui.Backends.GLFW;
 using Newtonsoft.Json;
@@ -19,6 +20,7 @@ namespace BPSR_ZDPS
         private static PlayerModDataSave PlayerModData = new PlayerModDataSave();
         private static FrozenDictionary<int, ModStatInfo> ModStatInfos;
         private static FrozenDictionary<int, ModuleType> ModTypeMapping;
+        private static FrozenDictionary<string, int> StatCombatScores;
         private static string ModuleImgBasePath;
         private static int NumTotalModules = 0;
         private static int NumAttackModules = 0;
@@ -46,9 +48,12 @@ namespace BPSR_ZDPS
                 Icon = x.Value.EffectConfigIcon,
                 StatId = x.Value.EffectID,
                 IconRef = ImageHelper.LoadTexture(Path.Combine(ModuleImgBasePath, $"{x.Value.EffectConfigIcon.Split('/').Last()}.png")) ??
-                    ImageHelper.LoadTexture(Path.Combine(ModuleImgBasePath, "missing.png")),
-                CombatScore = x.Value.FightValue
+                    ImageHelper.LoadTexture(Path.Combine(ModuleImgBasePath, "missing.png"))
             });
+
+            StatCombatScores = HelperMethods.DataTables.ModEffects.Data
+                .ToFrozenDictionary(x => $"{x.Value.EffectID}_{x.Value.EnhancementNum}",
+                y => y.Value.FightValue);
 
             ModStatInfos = effectStatTypes.ToFrozenDictionary(x => x.StatId, y => y);
             ModTypeMapping = HelperMethods.DataTables.Modules.Data.ToFrozenDictionary(x => x.Value.Id, y => (ModuleType)y.Value.SimilarId);
@@ -200,7 +205,7 @@ namespace BPSR_ZDPS
                                         int val = Settings.Instance.WindowSettings.ModuleWindow.LastUsedPreset.Config.LinkLevelBonus[i];
                                         //ImGui.SetNextItemWidth(100);
                                         ImGui.InputInt($"##LinkLevelBoost{i}", ref val, 0);
-                                        val = Math.Clamp(val, 0, 20);
+                                        val = Math.Clamp(val, 0, 500);
                                         Settings.Instance.WindowSettings.ModuleWindow.LastUsedPreset.Config.LinkLevelBonus[i] = (byte)val;
                                     }
 
@@ -255,7 +260,7 @@ namespace BPSR_ZDPS
             //ImGui.PopItemWidth();
         }
 
-        private static async Task DrawSolverTab(Vector2 windowSize, float leftWidth)
+        private static void DrawSolverTab(Vector2 windowSize, float leftWidth)
         {
             var contentRegion = ImGui.GetContentRegionAvail();
             ImGui.SetCursorPosY(58);
@@ -398,7 +403,7 @@ namespace BPSR_ZDPS
                             for (int i = 0; i < BestModResults.Count; i++)
                             {
                                 ModComboResult modsResult = BestModResults[i];
-                                if (ImGui.CollapsingHeader($"Result: {i + 1} (Score: {modsResult.Score})", (resultsOpenStates[i] ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)))
+                                if (ImGui.CollapsingHeader($"Result: {i + 1} (ZScore: {modsResult.Score})", (resultsOpenStates[i] ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None)))
                                 {
                                     var perLine = 3;
                                     var statPos = ImGui.GetCursorPos();
@@ -736,6 +741,30 @@ namespace BPSR_ZDPS
             if (n < 4) return 0;
             return (long)n * (n - 1) * (n - 2) * (n - 3) / 24;
         }
+
+        public static int CalcCombosCombatScore(PowerCore[] cores)
+        {
+            int cs = 0;
+            foreach (var core in cores)
+            {
+                var enhanceLevel = core.Value switch
+                {
+                    >= 20 => 20,
+                    >= 16 => 16,
+                    >= 12 => 12,
+                    >= 8 => 8,
+                    >= 4 => 4,
+                    >= 2 => 2,
+                    >= 1 => 1,
+                    _ => 0
+                };
+
+                var statCs = StatCombatScores.TryGetValue($"{core.Id}_{enhanceLevel}", out var temp) ? temp : 0;
+                cs += statCs;
+            }
+
+            return cs;
+        }
     }
 
     public enum ModuleType
@@ -751,7 +780,6 @@ namespace BPSR_ZDPS
         public string Icon { get; set; }
         public int StatId   { get; set; }
         public ImTextureRef? IconRef { get; set; }
-        public int CombatScore { get; set; }
     }
 
     public class ModTypeInfo
@@ -775,6 +803,7 @@ namespace BPSR_ZDPS
         public ModuleSet ModuleSet;
         public int Score;
         public PowerCore[] Stats;
+        public int CombatScore;
     }
 
     public struct PowerCore

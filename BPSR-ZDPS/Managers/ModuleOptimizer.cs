@@ -376,15 +376,15 @@ namespace BPSR_ZDPS.Managers
                             var passedMinValues = Vector.ConditionalSelect(statIsGreaterThan, sumsMined, new Vector<byte>(0));
                             var multied = passedMinValues * modStatMultplier;
 
-                            byte breakPointBonus = 0;
+                            int breakPointBonus = 0;
                             var breakPointValues = passedMinValues;
                             for (int idx = 0; idx < Vector<byte>.Count; idx++)
                             {
-                                var val = (byte)(breakPointBoosts[breakPointValues[idx]] * modStatMultplier[idx]);
+                                var val = (breakPointBoosts[breakPointValues[idx]] * modStatMultplier[idx]);
                                 breakPointBonus += val;
                             }
 
-                            int score = Vector.Sum(multied);
+                            int score = Vector.Sum(multied) + breakPointBonus;
 
                             for (int bestIdx = 0; bestIdx < topBest.Length; bestIdx++)
                             {
@@ -393,6 +393,7 @@ namespace BPSR_ZDPS.Managers
                                 {
                                     topBest[bestIdx].ModuleSet = combo;
                                     topBest[bestIdx].Score = score;
+                                    break;
                                 }
                             }
 
