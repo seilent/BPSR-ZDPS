@@ -20,6 +20,7 @@ namespace BPSR_ZDPS
         private static ILogger Log;
         private static ZstdSharp.Compressor Compressor = new ZstdSharp.Compressor();
         private static ZstdSharp.Decompressor Decompressor = new ZstdSharp.Decompressor();
+        private static object DBLock = new object();
 
         public static void Init()
         {
@@ -41,7 +42,10 @@ namespace BPSR_ZDPS
         {
             if (DbConn != null)
             {
-                DbConn.Close();
+                lock (DBLock)
+                {
+                    DbConn.Close();
+                }
             }
         }
 
@@ -61,56 +65,59 @@ namespace BPSR_ZDPS
         public static ulong InsertEncounter(Encounter encounter)
         {
             var sw = Stopwatch.StartNew();
-            using var transaction = DbConn.BeginTransaction();
-
-            using var encMs = new MemoryStream();
-            ProtoBuf.Serializer.Serialize(encMs, encounter.ExData);
-            encMs.Flush();
-            encounter.ExDataBlob = Compressor.Wrap(encMs.ToArray()).ToArray();
-
-            var encounterId = DbConn.QuerySingle<ulong>(DBSchema.Encounter.Insert, encounter, transaction);
-            encounter.EncounterId = encounterId;
-
-            using (var memoryStream = new MemoryStream())
+            lock (DBLock)
             {
-                using (var compStream = new ZstdSharp.CompressionStream(memoryStream))
+                using var transaction = DbConn.BeginTransaction();
+
+                using var encMs = new MemoryStream();
+                ProtoBuf.Serializer.Serialize(encMs, encounter.ExData);
+                encMs.Flush();
+                encounter.ExDataBlob = Compressor.Wrap(encMs.ToArray()).ToArray();
+
+                var encounterId = DbConn.QuerySingle<ulong>(DBSchema.Encounter.Insert, encounter, transaction);
+                encounter.EncounterId = encounterId;
+
+                using (var memoryStream = new MemoryStream())
                 {
-                    using (var streamWriter = new StreamWriter(compStream, Encoding.UTF8, 1024, true))
+                    using (var compStream = new ZstdSharp.CompressionStream(memoryStream))
                     {
-                        using (var writer = new JsonTextWriter(streamWriter))
+                        using (var streamWriter = new StreamWriter(compStream, Encoding.UTF8, 1024, true))
                         {
-                            JsonSerializer serializer = new JsonSerializer()
+                            using (var writer = new JsonTextWriter(streamWriter))
                             {
-                                Formatting = Formatting.None,
-                                TypeNameHandling = TypeNameHandling.All,
-                            };
-                            serializer.Serialize(writer, encounter.Entities);
-                            writer.Flush();
+                                JsonSerializer serializer = new JsonSerializer()
+                                {
+                                    Formatting = Formatting.None,
+                                    TypeNameHandling = TypeNameHandling.All,
+                                };
+                                serializer.Serialize(writer, encounter.Entities);
+                                writer.Flush();
+                            }
+                            streamWriter.Flush();
                         }
-                        streamWriter.Flush();
+                        compStream.Flush();
                     }
-                    compStream.Flush();
+
+                    var entityBlob = new EntityBlobTable();
+                    entityBlob.EncounterId = encounterId;
+                    entityBlob.Data = memoryStream.ToArray();
+                    Log.Information($"Enounter's entityBlob.Data.Length = {entityBlob.Data.Length}");
+                    DbConn.Execute(DBSchema.Entities.Insert, entityBlob);
+
+                    transaction.Commit();
                 }
 
-                var entityBlob = new EntityBlobTable();
-                entityBlob.EncounterId = encounterId;
-                entityBlob.Data = memoryStream.ToArray();
-                Log.Information($"Enounter's entityBlob.Data.Length = {entityBlob.Data.Length}");
-                DbConn.Execute(DBSchema.Entities.Insert, entityBlob);
+                // Forcefully release the Generation 2 memory that the above just used
+                GC.Collect(2);
 
-                transaction.Commit();
+                sw.Stop();
+                Log.Information("Saving encounter {encounterId} to DB took: {duration}", encounterId, sw.Elapsed);
+
+                //Directory.CreateDirectory("TestJsonEncounters");
+                //File.WriteAllText($"TestJsonEncounters/Encounter_{encounterId}_Write.json", entitiesJson);
+
+                return encounterId;
             }
-
-            // Forcefully release the Generation 2 memory that the above just used
-            GC.Collect(2);
-
-            sw.Stop();
-            Log.Information("Saving encounter {encounterId} to DB took: {duration}", encounterId, sw.Elapsed);
-
-            //Directory.CreateDirectory("TestJsonEncounters");
-            //File.WriteAllText($"TestJsonEncounters/Encounter_{encounterId}_Write.json", entitiesJson);
-
-            return encounterId;
         }
 
         public static Encounter? LoadEncounter(ulong encounterId)
@@ -179,18 +186,21 @@ namespace BPSR_ZDPS
 
         public static DBCleanUpResults ClearOldEncounters(int olderThanDays)
         {
-            var date = DateTime.Now.AddDays(olderThanDays * -1);
-            var results = new DBCleanUpResults();
-            results.EncountersDeleted = DbConn.Execute(DBSchema.Encounter.RemoveEncountersOlderThan, new { Date = date });
-            results.EntitiesCachesDeleted = DbConn.Execute(DBSchema.Entities.DeleteEntitiesCachesWithNoEncounters);
-            results.BattlesDeleted = DbConn.Execute(DBSchema.Battles.DeleteBattlesWithNoEncounters);
+            lock (DBLock)
+            {
+                var date = DateTime.Now.AddDays(olderThanDays * -1);
+                var results = new DBCleanUpResults();
+                results.EncountersDeleted = DbConn.Execute(DBSchema.Encounter.RemoveEncountersOlderThan, new { Date = date });
+                results.EntitiesCachesDeleted = DbConn.Execute(DBSchema.Entities.DeleteEntitiesCachesWithNoEncounters);
+                results.BattlesDeleted = DbConn.Execute(DBSchema.Battles.DeleteBattlesWithNoEncounters);
 
-            DbConn.Execute("VACUUM");
+                DbConn.Execute("VACUUM");
 
-            Log.Information("Cleaned up {EncountersDeleted} encounters and {BattlesDeleted} battles, with {EntitesCachesDeleted} cachedEntities",
-                    results.EncountersDeleted, results.BattlesDeleted, results.EntitiesCachesDeleted);
-            
-            return results;
+                Log.Information("Cleaned up {EncountersDeleted} encounters and {BattlesDeleted} battles, with {EntitesCachesDeleted} cachedEntities",
+                        results.EncountersDeleted, results.BattlesDeleted, results.EntitiesCachesDeleted);
+
+                return results;
+            }
         }
 
         // Battles
@@ -209,9 +219,12 @@ namespace BPSR_ZDPS
                 StartTime = DateTime.Now
             };
 
-            var battleId = DbConn.QuerySingle<int>(DBSchema.Battles.Insert, battle);
+            lock (DBLock)
+            {
+                var battleId = DbConn.QuerySingle<int>(DBSchema.Battles.Insert, battle);
 
-            return battleId;
+                return battleId;
+            }
         }
 
         public static void UpdateBattleInfo(int battleId, uint sceneId, string sceneName)
@@ -223,7 +236,10 @@ namespace BPSR_ZDPS
                 SceneName = sceneName ?? ""
             };
 
-            DbConn.Execute(DBSchema.Battles.Update, battle);
+            lock (DBLock)
+            {
+                DbConn.Execute(DBSchema.Battles.Update, battle);
+            }
         }
 
         public static void UpdateBattleEnd(int battleId)
@@ -234,7 +250,10 @@ namespace BPSR_ZDPS
                 EndTime = DateTime.Now
             };
 
-            DbConn.Execute(DBSchema.Battles.UpdateEndTime, battle);
+            lock (DBLock)
+            {
+                DbConn.Execute(DBSchema.Battles.UpdateEndTime, battle);
+            }
         }
 
         public static List<Battle> LoadBattles()
