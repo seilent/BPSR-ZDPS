@@ -58,7 +58,13 @@ namespace BPSR_ZDPS.Windows
             ImGui.SetNextWindowSize(new Vector2(550, 600), ImGuiCond.FirstUseEver);
             ImGui.SetNextWindowSizeConstraints(new Vector2(375, 150), new Vector2(ImGui.GETFLTMAX()));
 
-            ImGuiWindowFlags window_flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoDocking;
+            ImGuiWindowFlags exWindowFlags = ImGuiWindowFlags.None;
+            if (AppState.MousePassthrough && IsTopMost)
+            {
+                exWindowFlags |= ImGuiWindowFlags.NoInputs;
+            }
+
+            ImGuiWindowFlags window_flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoDocking | exWindowFlags;
             
             if (!p_open)
             {
@@ -193,19 +199,17 @@ namespace BPSR_ZDPS.Windows
 
                 ImGui.SetCursorPosX(MainMenuBarSize.X - (settingsWidth * 4));
                 ImGui.PushFont(HelperMethods.Fonts["FASIcons"], ImGui.GetFontSize());
-                if (ImGui.MenuItem($"{FASIcons.WindowMinimize}"))
+                if (ImGui.MenuItem($"{FASIcons.WindowMinimize}##MinimizeBtn"))
                 {
-                    // TODO: Minimize window (might not be possible since we're not actually using GLFW windows at this point)
-                    // Likely would need to use ImGuiDockSpaceOverViewport(ImGui.GetMainViewport()); for this main window to attach to platform window
-                    Utils.MinimiseWindow();
+                    Utils.MinimizeWindow();
                 }
                 ImGui.PopFont();
 
                 ImGui.SetCursorPosX(MainMenuBarSize.X - (settingsWidth * 3));
                 ImGui.PushFont(HelperMethods.Fonts["FASIcons"], ImGui.GetFontSize());
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 1.0f, 1.0f, IsTopMost ? 1.0f : 0.5f));
-                if (ImGui.MenuItem($"{FASIcons.Thumbtack}")) {
-                    // TODO: Make TopMost (for current and all windows)
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, AppState.MousePassthrough ? 0.0f : 1.0f, AppState.MousePassthrough ? 0.0f : 1.0f, IsTopMost ? 1.0f : 0.5f));
+                if (ImGui.MenuItem($"{FASIcons.Thumbtack}##TopMostBtn"))
+                {
                     if (!IsTopMost)
                     {
                         Utils.SetWindowTopmost();
@@ -226,7 +230,7 @@ namespace BPSR_ZDPS.Windows
                 // Create new Encounter button
                 ImGui.SetCursorPosX(MainMenuBarSize.X - (settingsWidth * 2));
                 ImGui.PushFont(HelperMethods.Fonts["FASIcons"], ImGui.GetFontSize());
-                if (ImGui.MenuItem($"{FASIcons.Rotate}"))
+                if (ImGui.MenuItem($"{FASIcons.Rotate}##StartNewEncounterBtn"))
                 {
                     CreateNewEncounter();
                 }
@@ -235,7 +239,7 @@ namespace BPSR_ZDPS.Windows
 
                 ImGui.SetCursorPosX(MainMenuBarSize.X - settingsWidth);
                 ImGui.PushFont(HelperMethods.Fonts["FASIcons"], ImGui.GetFontSize());
-                if (ImGui.BeginMenu($"{FASIcons.Gear}"))
+                if (ImGui.BeginMenu($"{FASIcons.Gear}##OptionsMenu"))
                 {
                     if (SettingsRunOnceDelayedPerOpen == 0)
                     {
@@ -442,6 +446,11 @@ namespace BPSR_ZDPS.Windows
             EncounterManager.StopEncounter();
             Log.Information($"Starting new manual encounter at {DateTime.Now}");
             EncounterManager.StartEncounter(true);
+        }
+
+        public void ToggleMouseClickthrough()
+        {
+            AppState.MousePassthrough = !AppState.MousePassthrough;
         }
     }
 }

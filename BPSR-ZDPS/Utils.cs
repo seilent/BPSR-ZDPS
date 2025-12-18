@@ -289,6 +289,17 @@ namespace BPSR_ZDPS
             GLFW.SetWindowAttrib((GLFWwindowPtr)ImGui.GetWindowViewport().PlatformHandle, GLFW.GLFW_VISIBLE, 1);
         }
 
+        /// <summary>
+        /// This likely will not actually do anything. Instead consider using ImGuiWindowFlags.NoInputs or ImGuiViewportFlags.NoInputs.
+        /// </summary>
+        /// <param name="clickThrough"></param>
+        /// <param name="viewport"></param>
+        public static void SetWindowClickThrough(bool clickThrough, ImGuiViewportPtr? viewport = null)
+        {
+            viewport = viewport ?? ImGui.GetWindowViewport();
+            GLFW.SetWindowAttrib((GLFWwindowPtr)viewport.Value.PlatformHandle, 131085, 1);
+        }
+
         public static void SetWindowTopmost(ImGuiViewportPtr? viewport = null)
         {
             viewport = viewport ?? ImGui.GetWindowViewport();
@@ -313,7 +324,7 @@ namespace BPSR_ZDPS
             User32.SetForegroundWindow((IntPtr)viewport.Value.PlatformHandleRaw);
         }
         
-        public static void MinimiseWindow(ImGuiViewportPtr? viewport = null)
+        public static void MinimizeWindow(ImGuiViewportPtr? viewport = null)
         {
             viewport = viewport ?? ImGui.GetWindowViewport();
             User32.ShowWindow((IntPtr)viewport.Value.PlatformHandleRaw, User32.SW_MINIMIZE);

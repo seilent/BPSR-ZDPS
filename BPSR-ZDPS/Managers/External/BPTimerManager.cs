@@ -187,13 +187,13 @@ namespace BPSR_ZDPS.Managers.External
 
                 if (mobs != null && mob_channel_status.Count > 0)
                 {
-                    Newtonsoft.Json.Linq.JToken mobs_items = ((Newtonsoft.Json.Linq.JObject)mobs)["items"];
-                    Newtonsoft.Json.Linq.JToken channel_status_items = ((Newtonsoft.Json.Linq.JObject)mob_channel_status)["items"];
+                    var mobs_items = ((Newtonsoft.Json.Linq.JObject)mobs)["items"].ToObject<List<MobsResponse>>();
+                    var channel_status_items = ((Newtonsoft.Json.Linq.JObject)mob_channel_status)["items"].ToObject<List<StatusResponse>>();
                     System.Diagnostics.Debug.WriteLine(channel_status_items);
 
                     foreach (var mob in mobs_items)
                     {
-                        long monsterId = long.Parse(mob["monster_id"].ToString());
+                        long monsterId = mob.MonsterId;
                         string gameMonsterName = "";
 
                         if (HelperMethods.DataTables.Monsters.Data.TryGetValue(monsterId.ToString(), out var monster))
@@ -204,32 +204,39 @@ namespace BPSR_ZDPS.Managers.External
                             }
                         }
 
+                        var region_data = mob.Expand.Map.RegionData;
+                        int totalChannels = 0;
+                        if (region_data.ContainsKey("NA"))
+                        {
+                            totalChannels = region_data["NA"];
+                        }
+                        else
+                        {
+                            totalChannels = region_data.FirstOrDefault().Value;
+                        }
+
                         MobsDescriptors.Add(new MobsDescriptor()
                         {
-                            MobId = mob["id"].ToString(),
-                            MobName = mob["name"].ToString(),
-                            MobType = mob["type"].ToString(),
-                            MobRespawnTime = int.Parse(mob["respawn_time"].ToString()),
-                            MobUID = int.Parse(mob["uid"].ToString()),
-                            MobMapId = mob["expand"]["map"]["id"].ToString(),
-                            MobMapName = mob["expand"]["map"]["name"].ToString(),
-                            MobMapTotalChannels = int.Parse(mob["expand"]["map"]["total_channels"].ToString()),
-                            MobMapUID = int.Parse(mob["expand"]["map"]["uid"].ToString()),
-                            MonsterId = long.Parse(mob["monster_id"].ToString()),
+                            MobId = mob.Id,
+                            MobName = mob.Name,
+                            MobType = mob.Type,
+                            MobRespawnTime = mob.RespawnTime,
+                            MobUID = mob.UID,
+                            MobMapId = mob.Expand.Map.Id,
+                            MobMapName = mob.Expand.Map.Name,
+                            MobMapTotalChannels = totalChannels,
+                            MobMapUID = mob.Expand.Map.UID,
+                            MonsterId = monsterId,
                             GameMobName = gameMonsterName
                         });
                     }
 
                     foreach (var status in channel_status_items)
                     {
-                        var mobId = status["mob"];
-                        var channelNumber = status["channel_number"] ?? 0;
-                        var lastUpdate = status["last_update"] ?? status["update"] ?? "";
-                        var lastHp = status["last_hp"] ?? 0;
-                        var location = status["location_image"] ?? "";
+                        var lastUpdate = status.LastUpdate ?? status.Update ?? "";
 
                         long monsterId = 0;
-                        var match = MobsDescriptors.Where(x => x.MobId == mobId.ToString());
+                        var match = MobsDescriptors.Where(x => x.MobId == status.Mob);
                         if (match.Any())
                         {
                             monsterId = match.First().MonsterId;
@@ -237,13 +244,14 @@ namespace BPSR_ZDPS.Managers.External
 
                         StatusDescriptors.Add(new StatusDescriptor()
                         {
-                            MobId = mobId.ToString(),
-                            ChannelNumber = int.Parse(channelNumber.ToString()),
+                            MobId = status.Mob,
+                            ChannelNumber = status.ChannelNumber,
                             UpdateTime = lastUpdate.ToString(),
-                            LastHp = int.Parse(lastHp.ToString()),
+                            LastHp = status.LastHP,
                             UpdateTimestamp = (!string.IsNullOrEmpty(lastUpdate.ToString()) ? DateTime.ParseExact(lastUpdate.ToString(), "yyyy-MM-dd HH:mm:ss.fffZ", System.Globalization.CultureInfo.InvariantCulture): null),
-                            Location = location.ToString(),
-                            MonsterId = monsterId
+                            Location = status.LocationImage,
+                            MonsterId = monsterId,
+                            Region = status.Region
                         });
                     }
 
@@ -377,5 +385,6 @@ namespace BPSR_ZDPS.Managers.External
         public int LastHp { get; set; }
         public string Location { get; set; }
         public long MonsterId { get; set; }
+        public string Region { get; set; }
     }
 }

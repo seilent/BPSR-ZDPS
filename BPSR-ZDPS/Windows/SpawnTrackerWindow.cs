@@ -88,7 +88,13 @@ namespace BPSR_ZDPS.Windows
 
             ImGuiP.PushOverrideID(ImGuiP.ImHashStr(LAYER));
 
-            if (ImGui.Begin($"{TITLE}{TITLE_ID}", ref IsOpened, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoDocking))
+            ImGuiWindowFlags exWindowFlags = ImGuiWindowFlags.None;
+            if (AppState.MousePassthrough && IsTopMost)
+            {
+                exWindowFlags |= ImGuiWindowFlags.NoInputs;
+            }
+
+            if (ImGui.Begin($"{TITLE}{TITLE_ID}", ref IsOpened, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.MenuBar | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoDocking | exWindowFlags))
             {
                 if (RunOnceDelayed == 0)
                 {
@@ -218,7 +224,7 @@ namespace BPSR_ZDPS.Windows
                             ImGui.EndGroup();
                             var groupSize = ImGui.GetItemRectSize();
 
-                            var statusDescriptors = BPTimerManager.StatusDescriptors.AsValueEnumerable().Where(x => x.MobId == mob.MobId).OrderByDescending(x => x.UpdateTimestamp).OrderBy(x =>
+                            var statusDescriptors = BPTimerManager.StatusDescriptors.AsValueEnumerable().Where(x => x.MobId == mob.MobId && x.Region == "NA").OrderByDescending(x => x.UpdateTimestamp).OrderBy(x =>
                             {
                                 if (x.UpdateTimestamp?.Subtract(DateTime.Now).TotalMinutes < -5 && x.LastHp != 0)
                                 {
@@ -361,8 +367,8 @@ namespace BPSR_ZDPS.Windows
 
                 ImGui.SetCursorPosX(MenuBarSize.X - (MenuBarButtonWidth * 3));
                 ImGui.PushFont(HelperMethods.Fonts["FASIcons"], ImGui.GetFontSize());
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 1.0f, 1.0f, IsTopMost ? 1.0f : 0.5f));
-                if (ImGui.MenuItem($"{FASIcons.Thumbtack}"))
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, AppState.MousePassthrough ? 0.0f : 1.0f, AppState.MousePassthrough ? 0.0f : 1.0f, IsTopMost ? 1.0f : 0.5f));
+                if (ImGui.MenuItem($"{FASIcons.Thumbtack}##TopMostBtn"))
                 {
                     if (!IsTopMost)
                     {
@@ -384,7 +390,7 @@ namespace BPSR_ZDPS.Windows
                 ImGui.SetCursorPosX(MenuBarSize.X - (MenuBarButtonWidth * 2));
                 ImGui.PushFont(HelperMethods.Fonts["FASIcons"], ImGui.GetFontSize());
                 ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, 1.0f, 1.0f, CollapseToContentOnly ? 1.0f : 0.5f));
-                if (ImGui.MenuItem($"{(CollapseToContentOnly ? FASIcons.AnglesDown : FASIcons.AnglesUp)}"))
+                if (ImGui.MenuItem($"{(CollapseToContentOnly ? FASIcons.AnglesDown : FASIcons.AnglesUp)}##CollapseToContentBtn"))
                 {
                     CollapseToContentOnly = !CollapseToContentOnly;
                 }
@@ -402,7 +408,7 @@ namespace BPSR_ZDPS.Windows
 
                 ImGui.SetCursorPosX(MenuBarSize.X - (MenuBarButtonWidth));
                 ImGui.PushFont(HelperMethods.Fonts["FASIcons"], ImGui.GetFontSize());
-                if (ImGui.MenuItem($"X"))
+                if (ImGui.MenuItem($"X##CloseBtn"))
                 {
                     IsOpened = false;
                 }

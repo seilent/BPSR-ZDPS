@@ -8,6 +8,64 @@ using System.Threading.Tasks;
 
 namespace BPSR_ZDPS.DataTypes.External
 {
+    public class MobsResponse
+    {
+        [JsonProperty("id")]
+        public string Id { get; set; }
+        [JsonProperty("map")]
+        public string Map { get; set; }
+        [JsonProperty("monster_id")]
+        public long MonsterId { get; set; }
+        [JsonProperty("name")]
+        public string Name { get; set; }
+        [JsonProperty("respawn_time")]
+        public int RespawnTime { get; set; }
+        [JsonProperty("type")]
+        public string Type { get; set; }
+        [JsonProperty("uid")]
+        public int UID { get; set; }
+        [JsonProperty("expand")]
+        public MobsResponseExpand Expand { get; set; }
+    }
+
+    public class MobsResponseExpand
+    {
+        [JsonProperty("map")]
+        public MobsResponseExpandMap Map { get; set; }
+    }
+
+    public class MobsResponseExpandMap
+    {
+        [JsonProperty("id")]
+        public string Id { get; set; }
+        [JsonProperty("name")]
+        public string Name { get; set; }
+        [JsonProperty("region_data")]
+        public Dictionary<string, int> RegionData { get; set; }
+        [JsonProperty("uid")]
+        public int UID { get; set; }
+    }
+
+    public class StatusResponse
+    {
+        [JsonProperty("channel_number")]
+        public int ChannelNumber { get; set; }
+        [JsonProperty("id")]
+        public string Id { get; set; }
+        [JsonProperty("last_hp")]
+        public int LastHP { get; set; }
+        [JsonProperty("last_update")]
+        public string? LastUpdate { get; set; }
+        [JsonProperty("update")]
+        public string? Update { get; set; }
+        [JsonProperty("location_image")]
+        public string LocationImage { get; set; }
+        [JsonProperty("mob")]
+        public string Mob { get; set; }
+        [JsonProperty("region")]
+        public string Region { get; set; }
+    }
+
     public class BPTimerHpReport
     {
         [JsonProperty("monster_id")]

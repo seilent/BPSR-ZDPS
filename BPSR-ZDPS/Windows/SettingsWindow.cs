@@ -46,6 +46,9 @@ namespace BPSR_ZDPS.Windows
         static bool IsBindingEncounterResetKey = false;
         static uint EncounterResetKey;
         static string EncounterResetKeyName = "";
+        static bool IsBindingPinnedWindowClickthroughKey = false;
+        static uint PinnedWindowClickthroughKey;
+        static string PinnedWindowClickthroughKeyName = "";
 
         static SharpPcap.LibPcap.LibPcapLiveDeviceList? NetworkDevices;
         static EGameCapturePreference GameCapturePreference;
@@ -260,7 +263,8 @@ namespace BPSR_ZDPS.Windows
                         ImGui.TextWrapped("Press Escape to cancel the rebinding process.");
 
                         ImGui.Indent();
-                        RebindKeyButton("Encounter Reset", ref EncounterResetKey, ref EncounterResetKeyName);
+
+                        RebindKeyButton("Encounter Reset", ref EncounterResetKey, ref EncounterResetKeyName, ref IsBindingEncounterResetKey);
                         if (splitEncountersOnNewPhases)
                         {
                             ImGui.Indent();
@@ -269,6 +273,13 @@ namespace BPSR_ZDPS.Windows
                             ImGui.PopStyleColor();
                             ImGui.Unindent();
                         }
+                        RebindKeyButton("Pinned Window Clickthrough", ref PinnedWindowClickthroughKey, ref PinnedWindowClickthroughKeyName, ref IsBindingPinnedWindowClickthroughKey);
+                        ImGui.Indent();
+                        ImGui.BeginDisabled(true);
+                        ImGui.TextWrapped("This allows your mouse input to go 'through' the pinned (Top Most) window, ignoring it, and interacting with whatever may be behind it such as the game or another application.");
+                        ImGui.EndDisabled();
+                        ImGui.Unindent();
+
                         ImGui.Unindent();
 
                         ImGui.SeparatorText("Database");
@@ -1041,6 +1052,16 @@ namespace BPSR_ZDPS.Windows
                         EncounterResetKeyName = ImGui.GetKeyNameS(HotKeyManager.VirtualKeyToImGuiKey((int)EncounterResetKey));
                     }
 
+                    PinnedWindowClickthroughKey = Settings.Instance.HotkeysPinnedWindowClickthrough;
+                    if (PinnedWindowClickthroughKey == 0)
+                    {
+                        PinnedWindowClickthroughKeyName = "[UNBOUND]";
+                    }
+                    else
+                    {
+                        PinnedWindowClickthroughKeyName = ImGui.GetKeyNameS(HotKeyManager.VirtualKeyToImGuiKey((int)PinnedWindowClickthroughKey));
+                    }
+
                     RegisterAllHotkeys(mainWindow);
 
                     ImGui.CloseCurrentPopup();
@@ -1207,22 +1228,28 @@ namespace BPSR_ZDPS.Windows
                 HotKeyManager.RegisterKey("EncounterReset", mainWindow.CreateNewEncounter, EncounterResetKey);
             }
             Settings.Instance.HotkeysEncounterReset = EncounterResetKey;
+
+            if (PinnedWindowClickthroughKey != 0)
+            {
+                HotKeyManager.RegisterKey("PinnedWindowClickthrough", mainWindow.ToggleMouseClickthrough, PinnedWindowClickthroughKey);
+            }
+            Settings.Instance.HotkeysPinnedWindowClickthrough = PinnedWindowClickthroughKey;
         }
 
-        public static void RebindKeyButton(string bindingName, ref uint bindingVariable, ref string bindingVariableName)
+        public static void RebindKeyButton(string bindingName, ref uint bindingVariable, ref string bindingVariableName, ref bool bindingState)
         {
             ImGui.AlignTextToFramePadding();
             ImGui.Text($"{bindingName}:");
 
             string bindDisplay = "[UNBOUND]";
 
-            if (IsBindingEncounterResetKey == true)
+            if (bindingState == true)
             {
                 for (uint key = (uint)ImGuiKey.NamedKeyBegin; key < (uint)ImGuiKey.NamedKeyEnd; key++)
                 {
                     if (ImGui.IsKeyPressed(ImGuiKey.Escape))
                     {
-                        IsBindingEncounterResetKey = false;
+                        bindingState = false;
                     }
                     else if (ImGui.IsKeyPressed((ImGuiKey)key))
                     {
@@ -1241,7 +1268,7 @@ namespace BPSR_ZDPS.Windows
                             string keyName = ImGui.GetKeyNameS((ImGuiKey)key);
                             bindingVariable = (uint)HotKeyManager.ImGuiKeyToVirtualKey((ImGuiKey)key);
                             bindingVariableName = keyName;
-                            IsBindingEncounterResetKey = false;
+                            bindingState = false;
                         }
                     }
                 }
@@ -1252,15 +1279,15 @@ namespace BPSR_ZDPS.Windows
                 bindDisplay = bindingVariableName;
             }
             ImGui.SameLine();
-            bool isInBindingState = IsBindingEncounterResetKey;
+            bool isInBindingState = bindingState;
 
             if (isInBindingState)
             {
                 ImGui.PushStyleColor(ImGuiCol.Button, ImGui.GetStyle().Colors[(int)ImGuiCol.ButtonHovered]);
             }
-            if (ImGui.Button($"{bindDisplay}", new Vector2(120, 0)))
+            if (ImGui.Button($"{bindDisplay}##BindBtn_{bindingName}", new Vector2(120, 0)))
             {
-                IsBindingEncounterResetKey = true;
+                bindingState = true;
             }
             if (isInBindingState)
             {

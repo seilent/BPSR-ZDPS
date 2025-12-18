@@ -51,6 +51,7 @@ public class Settings
     public WindowSettings WindowSettings { get; set; } = new();
 
     public uint HotkeysEncounterReset { get; set; }
+    public uint HotkeysPinnedWindowClickthrough { get; set; }
 
     public void Apply()
     {
@@ -64,6 +65,11 @@ public class Settings
         if (HotkeysEncounterReset > 0)
         {
             HotKeyManager.RegisterKey("EncounterReset", mainWindow.CreateNewEncounter, HotkeysEncounterReset);
+        }
+
+        if (HotkeysPinnedWindowClickthrough > 0)
+        {
+            HotKeyManager.RegisterKey("PinnedWindowClickthrough", mainWindow.ToggleMouseClickthrough, HotkeysPinnedWindowClickthrough);
         }
     }
 
