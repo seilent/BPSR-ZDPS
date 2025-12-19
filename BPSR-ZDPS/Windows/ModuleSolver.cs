@@ -218,6 +218,11 @@ namespace BPSR_ZDPS
                                     }
 
                                     ImGui.EndTable();
+
+                                    if (ImGui.Button("Reset to Defaults", new Vector2(-1, 0)))
+                                    {
+                                        Settings.Instance.WindowSettings.ModuleWindow.LastUsedPreset.Config.LinkLevelBonus = SolverConfig.DefaultLinkLevels;
+                                    }
                                 }
                                 ImGui.TableNextColumn();
                                 ImGui.SeparatorText("Link Level Boost Description");

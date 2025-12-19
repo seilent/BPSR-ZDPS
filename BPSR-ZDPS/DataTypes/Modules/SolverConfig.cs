@@ -4,9 +4,10 @@ namespace BPSR_ZDPS.DataTypes.Modules
 {
     public class SolverConfig
     {
+        public static byte[] DefaultLinkLevels = [1, 2, 4, 8, 16, 32];
         public Dictionary<int, bool> QualitiesV2 = new Dictionary<int, bool>() { { 2, false }, { 3, true }, { 4, true } };
         public List<StatPrio> StatPriorities = [];
-        public byte[] LinkLevelBonus = [1,2,4,8,16,32];
+        public byte[] LinkLevelBonus = DefaultLinkLevels;
         public bool ValueAllStats = true;
 
         public string SaveToString(bool asBase64 = false)
