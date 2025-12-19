@@ -153096,6 +153096,213 @@
     "BornSkillId": 0,
     "BkCanBeHit": false
   },
+  "69100": {
+    "Id": 69100,
+    "Name": "Snow Nappo",
+    "ModelID": 33149,
+    "MonsterType": 2,
+    "BloodTubeCount": 1,
+    "MonsterRank": "",
+    "SkillIds": [
+      3340169
+    ],
+    "HatredBuildType": [
+      1,
+      0
+    ],
+    "IsFlying": false,
+    "SightConfig": [
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        1,
+        360,
+        0,
+        10,
+        1
+      ]
+    ],
+    "IsAccurateSight": false,
+    "IsShowAlertOutCamera": false,
+    "HatredAway": [
+      1,
+      1
+    ],
+    "Score": 0,
+    "HatredAwayType": [
+      20000,
+      50,
+      50
+    ],
+    "AttributeId": 69100,
+    "WalkSpeed": 0.0,
+    "RunSpeed": 0.0,
+    "FRunSpeed": 0.0,
+    "AlertSpeed": 0.0,
+    "MinAlertDis": 0.0,
+    "MaxAlertDis": 0.0,
+    "BodyDuration": 0,
+    "ExportVoxel": false,
+    "VoxelPath": "",
+    "DefaultCamp": 1,
+    "HudShowParam": [
+      0
+    ],
+    "EntityTurnVelocity": [
+      60.0,
+      360.0
+    ],
+    "AITableReference": 8,
+    "AttackHeight": 0.0,
+    "DropHeight": 0.0,
+    "DashSpeed": 0.0,
+    "MonsterFightArea": 0,
+    "HatredAwayShow": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "Tags": [
+      62
+    ],
+    "TargetSelectWeight": 1.0,
+    "BornDissolutionTime": 1000,
+    "BornDuration": 1000,
+    "InvincibleTimeWithBorn": 1000,
+    "BreakingContinueTime": 6.0,
+    "WeeknessDuration": 0.0,
+    "FractureDuration": 5.0,
+    "BehitLightIsOpen": false,
+    "BornClientBuffs": [],
+    "DeadClientBuffs": [],
+    "HudInScreen": true,
+    "BloodMark": [],
+    "HudPosParam": 0.0,
+    "MonsterLogicLevel": 0,
+    "DropPackageID": 0,
+    "DropPackageRange": [],
+    "StatusInfo": [],
+    "StatusTransition": [],
+    "InteractionTemplate": [],
+    "ShowStatusInfo": [],
+    "ShowStatusTransition": [],
+    "AppearDisAppearCfg": [],
+    "DissolutionCfg": [],
+    "LifeInfo": [],
+    "UIHiddenDis": 60.0,
+    "IsNotGround": false,
+    "BornSkillId": 0,
+    "BkCanBeHit": false
+  },
+  "69101": {
+    "Id": 69101,
+    "Name": "Snowman",
+    "ModelID": 33150,
+    "MonsterType": 0,
+    "BloodTubeCount": 1,
+    "MonsterRank": "",
+    "SkillIds": [
+      4901,
+      4902
+    ],
+    "HatredBuildType": [
+      0,
+      0
+    ],
+    "IsFlying": false,
+    "SightConfig": [
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        10,
+        360,
+        0,
+        10,
+        1
+      ]
+    ],
+    "IsAccurateSight": false,
+    "IsShowAlertOutCamera": false,
+    "HatredAway": [
+      1,
+      1
+    ],
+    "Score": 0,
+    "HatredAwayType": [
+      0,
+      70,
+      0
+    ],
+    "AttributeId": 205,
+    "WalkSpeed": 2.0,
+    "RunSpeed": 6.0,
+    "FRunSpeed": 6.0,
+    "AlertSpeed": 1.5,
+    "MinAlertDis": 5.0,
+    "MaxAlertDis": 50.0,
+    "BodyDuration": 3000,
+    "ExportVoxel": false,
+    "VoxelPath": "",
+    "DefaultCamp": 1,
+    "HudShowParam": [
+      0
+    ],
+    "EntityTurnVelocity": [
+      60.0,
+      360.0
+    ],
+    "AITableReference": 1,
+    "AttackHeight": 0.0,
+    "DropHeight": 0.0,
+    "DashSpeed": 0.0,
+    "MonsterFightArea": 0,
+    "HatredAwayShow": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "Tags": [
+      35
+    ],
+    "TargetSelectWeight": 1.0,
+    "BornDissolutionTime": 1000,
+    "BornDuration": 1000,
+    "InvincibleTimeWithBorn": 1000,
+    "BreakingContinueTime": 12.0,
+    "WeeknessDuration": 1.0,
+    "FractureDuration": 5.0,
+    "BehitLightIsOpen": true,
+    "BornClientBuffs": [],
+    "DeadClientBuffs": [],
+    "HudInScreen": false,
+    "BloodMark": [],
+    "HudPosParam": 0.0,
+    "MonsterLogicLevel": 0,
+    "DropPackageID": 0,
+    "DropPackageRange": [],
+    "StatusInfo": [],
+    "StatusTransition": [],
+    "InteractionTemplate": [],
+    "ShowStatusInfo": [],
+    "ShowStatusTransition": [],
+    "AppearDisAppearCfg": [],
+    "DissolutionCfg": [],
+    "LifeInfo": [],
+    "UIHiddenDis": 0.0,
+    "IsNotGround": false,
+    "BornSkillId": 0,
+    "BkCanBeHit": false
+  },
   "70003": {
     "Id": 70003,
     "Name": "Goblin Dagger",
@@ -158943,7 +159150,7 @@
     ],
     "Score": 0,
     "HatredAwayType": [
-      20000,
+      30000,
       0,
       0
     ],
@@ -161425,7 +161632,7 @@
     ],
     "Score": 0,
     "HatredAwayType": [
-      20000,
+      30000,
       0,
       0
     ],
@@ -219242,7 +219449,7 @@
   "3000010": {
     "Id": 3000010,
     "Name": "Goblin Sword - Resonance",
-    "ModelID": 10053,
+    "ModelID": 1130,
     "MonsterType": 0,
     "BloodTubeCount": 0,
     "MonsterRank": "",
