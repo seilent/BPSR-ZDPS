@@ -511,11 +511,20 @@ namespace BPSR_ZDPS
             var availSize = ImGui.GetContentRegionAvail();
             ImGui.SetCursorPos(pos + new Vector2(availSize.X - 70, 5));
             ImGui.SetNextItemWidth(40);
+
+            /*
             if (ImGui.InputInt($"##MinLevel{i}", ref SolverConfig.StatPriorities[i].MinLevel, 0, ImGuiInputTextFlags.CharsDecimal))
             {
                 wasChanged = true;
             }
             ImGui.SetItemTooltip("The minimum Link value needed for this stat to be considered.\nLeave 0 to use any Link.");
+            */
+
+            if (ImGui.InputInt($"##ReqLevel{i}", ref SolverConfig.StatPriorities[i].ReqLevel, 0, ImGuiInputTextFlags.CharsDecimal))
+            {
+                wasChanged = true;
+            }
+            ImGui.SetItemTooltip("The required Link value needed for this stat to have for the combination to be considered.\nLeave 0 to use any Link.");
 
             ImGui.SetCursorPos(pos + new Vector2(availSize.X - 25, 0));
             ImGui.PushFont(HelperMethods.Fonts["FASIcons"], 13.0f);
@@ -836,6 +845,7 @@ namespace BPSR_ZDPS
     {
         public int Id;
         public int MinLevel;
+        public int ReqLevel;
     }
 
     public class Preset

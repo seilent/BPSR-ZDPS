@@ -318,16 +318,19 @@ namespace BPSR_ZDPS.Managers
             Vector<byte> statCap = new Vector<byte>(MAX_LEVEL);
 
             var statMins = new byte[vecCount];
+            var statReqs = new byte[vecCount];
             var statMask = new byte[vecCount];
             foreach (var statPrio in config.StatPriorities)
             {
                 if (possableStats.TryGetValue(statPrio.Id, out var idx))
                 {
                     statMins[idx] = (byte)statPrio.MinLevel;
+                    statReqs[idx] = (byte)statPrio.ReqLevel;
                     statMask[idx] = 1;
                 }
             }
             Vector<byte> statMinsVec = new Vector<byte>(statMins);
+            Vector<byte> statReqsVec = new Vector<byte>(statReqs);
             Vector<byte> statMaskVec = new Vector<byte>(statMask);
 
             var breakPointBoosts = new byte[vecCount];
@@ -373,6 +376,14 @@ namespace BPSR_ZDPS.Managers
                                 modStatValues[l]);
 
                             var sumsMined = Vector.Min(sums, statCap);
+
+                            var statIsGreaterThanReq = Vector.LessThan<byte>(sumsMined, statReqsVec);
+                            var statIsGreaterThanReqSumed = Vector.Sum(Vector.AsVectorUInt16(statIsGreaterThanReq));
+                            if (statIsGreaterThanReqSumed > 0)
+                            {
+                                continue;
+                            }
+
                             var statIsGreaterThan = Vector.GreaterThan<byte>(sumsMined, statMinsVec);
                             var passedMinValues = Vector.ConditionalSelect(statIsGreaterThan, sumsMined, new Vector<byte>(0));
                             //var multied = passedMinValues * modStatMultplier;
