@@ -40,6 +40,12 @@ namespace BPSR_ZDPS
                         NotificationAlertManager.StopNotifyAudio();
                     }
                 }
+
+                // Always check for someone declining the match request to ensure we stop any notification audio
+                if (matchPlayerInfo.ReadyStatus == EMatchReadyStatus.UnReady)
+                {
+                    NotificationAlertManager.StopNotifyAudio();
+                }
             }
         }
     }
