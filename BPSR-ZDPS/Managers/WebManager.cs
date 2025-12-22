@@ -232,10 +232,25 @@ namespace BPSR_ZDPS.Web
                     var mobHpUpdate = JsonConvert.DeserializeObject<List<DataTypes.External.BPTimerMobHpUpdate>>(item.Data, new JsonSerializerSettings() { Converters = { new DataTypes.External.BPTimerMobHpUpdateConverter() } });
                     Managers.External.BPTimerManager.HandleMobHpUpdateEvent(mobHpUpdate);
                 }
-                else if (item.EventType == "mob_resets")
+                else if (item.EventType.StartsWith("mob_resets", StringComparison.OrdinalIgnoreCase))
                 {
+                    string region = "NA";
+                    try
+                    {
+                        if (item.EventType.StartsWith("mob_resets_", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string sentRegion = item.EventType.Substring(11).ToUpper();
+                            region = sentRegion;
+                            Log.Information($"BPTimerOpenRealtimeStream got event {item.EventType} as Regional [{region}].");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"BPTimerOpenRealtimeStream encountered error trying to resolve Mob Reset regional indicator: {item.EventType}\n{ex.Message}");
+                    }
+                    
                     // This occurs when a monster type is schduled to respawn
-                    Managers.External.BPTimerManager.HandleMobResetEvent(JsonConvert.DeserializeObject<List<string>>(item.Data));
+                    Managers.External.BPTimerManager.HandleMobResetEvent(JsonConvert.DeserializeObject<List<string>>(item.Data), region);
                 }
                 else if (item.EventType.StartsWith("PB_"))
                 {

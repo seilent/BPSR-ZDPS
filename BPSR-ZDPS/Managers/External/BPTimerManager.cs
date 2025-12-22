@@ -380,7 +380,7 @@ namespace BPSR_ZDPS.Managers.External
             }
         }
 
-        public static void HandleMobResetEvent(List<string> resets)
+        public static void HandleMobResetEvent(List<string> resets, string region)
         {
             try
             {
@@ -388,7 +388,7 @@ namespace BPSR_ZDPS.Managers.External
                 {
                     foreach (var status in StatusDescriptors)
                     {
-                        if (status.MobId == mobId)
+                        if (status.MobId == mobId && status.Region.Equals(region, StringComparison.OrdinalIgnoreCase))
                         {
                             DateTime timestamp = DateTime.Now;
 
