@@ -150,7 +150,7 @@ namespace BPSR_ZDPS.Windows
                     ImGui.TextUnformatted(Utils.NumberToShorthand(entity.DamageStats.ValuePerSecond));
 
                     ImGui.TableNextColumn();
-                    ImGui.Text(Utils.NumberToShorthand(entity.TotalShieldBreak));
+                    ImGui.TextUnformatted(Utils.NumberToShorthand(entity.TotalShieldBreak));
 
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted($"{entity.DamageStats.CritRate}%");

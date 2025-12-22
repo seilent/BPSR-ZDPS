@@ -138,6 +138,51 @@ namespace BPSR_ZDPS.Managers.External
             }
         }
 
+        public static void SendForceDeadReport(long entityUid, uint line)
+        {
+            if (!Settings.Instance.External.BPTimerSettings.ExternalBPTimerEnabled)
+            {
+                return;
+            }
+
+            if (!Settings.Instance.External.BPTimerSettings.ExternalBPTimerFieldBossHpReportsEnabled)
+            {
+                return;
+            }
+
+            var canReport = (LastSentRequest?.HpPct != 0 || LastSentRequest?.MonsterId != entityUid || LastSentRequest?.Line != line);
+
+            if (string.IsNullOrEmpty(API_KEY))
+            {
+                Log.Error("Error in BPTimerManager: API_KEY was not set!");
+                return;
+            }
+
+            if (canReport)
+            {
+                long? uid = (Settings.Instance.External.BPTimerSettings.ExternalBPTimerIncludeCharacterId ? AppState.PlayerUID : null);
+                var player = EncounterManager.Current?.GetOrCreateEntity(AppState.PlayerUUID);
+
+                bool hasPositionData = player?.Position.Length() != 0.0f;
+
+                var report = new BPTimerHpReport()
+                {
+                    MonsterId = entityUid,
+                    HpPct = 0,
+                    Line = line,
+                    PosX = hasPositionData ? player?.Position.X : null,
+                    PosY = hasPositionData ? player?.Position.Y : null,
+                    PosZ = hasPositionData ? player?.Position.Z : null,
+                    AccountId = AppState.AccountId,
+                    UID = uid
+                };
+
+                LastSentRequest = report;
+
+                WebManager.SubmitBPTimerRequest(report, $"{HOST}/api/create-hp-report", API_KEY);
+            }
+        }
+
         public static void FetchAllMobs()
         {
             var task = Task.Factory.StartNew(async () =>
@@ -279,6 +324,7 @@ namespace BPSR_ZDPS.Managers.External
                     }
                     catch (Exception ex)
                     {
+                        SpawnDataRealtimeConnection = ESpawnDataLoadStatus.Error;
                         Log.Error($"BPTimerOpenRealtimeStream SSE Error:\n{ex.Message}");
                         await Task.Delay(500);
                     }

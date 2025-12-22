@@ -35,6 +35,12 @@ namespace BPSR_ZDPS.Windows
             ImGui.OpenPopup(TITLE_ID);
             IsOpened = true;
             InitializeBindings();
+            ConnectToBPTimer();
+            ImGui.PopID();
+        }
+
+        static void ConnectToBPTimer()
+        {
             if (BPTimerManager.SpawnDataLoaded == BPTimerManager.ESpawnDataLoadStatus.NotLoaded || BPTimerManager.SpawnDataLoaded == BPTimerManager.ESpawnDataLoadStatus.Error || BPTimerManager.SpawnDataRealtimeConnection == BPTimerManager.ESpawnDataLoadStatus.Error)
             {
                 BPTimerManager.SpawnDataLoaded = BPTimerManager.ESpawnDataLoadStatus.InProgress;
@@ -42,7 +48,6 @@ namespace BPSR_ZDPS.Windows
                 BPTimerManager.StatusDescriptors.Clear();
                 BPTimerManager.FetchAllMobs();
             }
-            ImGui.PopID();
         }
 
         public static void InitializeBindings()
@@ -228,7 +233,7 @@ namespace BPSR_ZDPS.Windows
 
                     ImGui.SameLine();
                     ImGui.AlignTextToFramePadding();
-                    ImGui.Text("Channels To Display: ");
+                    ImGui.TextUnformatted("Channels To Display: ");
                     ImGui.SameLine();
                     ImGui.SetNextItemWidth(-1);
                     ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, ImGui.GetColorU32(ImGuiCol.FrameBgHovered, 0.55f));
@@ -266,7 +271,7 @@ namespace BPSR_ZDPS.Windows
                                 name = mob.MobName;
                             }
                             ImGui.Selectable($"{name} [{mob.MobMapName}]##MobLabel_{mob.MobId}", ImGuiSelectableFlags.SpanAllColumns);
-
+                            
                             ImGui.EndGroup();
                             var groupSize = ImGui.GetItemRectSize();
 
@@ -341,6 +346,15 @@ namespace BPSR_ZDPS.Windows
                                 }
                                 ImGui.PushFont(HelperMethods.Fonts["Segoe"], lineHeight);
                                 ImGuiEx.TextAlignedProgressBar(pct, $"{status.ChannelNumber}", 0.5f, lineWidth, lineHeight);
+                                if (ImGui.BeginPopupContextItem($"##LineContextMenu_{mob.MobId}_{status.ChannelNumber}_{status.Region}"))
+                                {
+                                    if (ImGui.MenuItem($"Report Line {status.ChannelNumber} As Dead"))
+                                    {
+                                        Serilog.Log.Information("User sending manual dead monster report.");
+                                        BPTimerManager.SendForceDeadReport(mob.MonsterId, (uint)status.ChannelNumber);
+                                    }
+                                    ImGui.EndPopup();
+                                }
                                 ImGui.PopFont();
                                 if (shouldSameLine)
                                 {
@@ -410,6 +424,22 @@ namespace BPSR_ZDPS.Windows
                 MenuBarSize = ImGui.GetWindowSize();
 
                 ImGui.Text($"{TITLE}");
+
+                ImGui.BeginDisabled(BPTimerManager.SpawnDataLoaded == BPTimerManager.ESpawnDataLoadStatus.InProgress);
+                bool hasConnectionError = BPTimerManager.SpawnDataLoaded == BPTimerManager.ESpawnDataLoadStatus.Error || BPTimerManager.SpawnDataRealtimeConnection == BPTimerManager.ESpawnDataLoadStatus.Error;
+                ImGui.SetCursorPosX(MenuBarSize.X - (MenuBarButtonWidth * 4));
+                ImGui.PushFont(HelperMethods.Fonts["FASIcons"], ImGui.GetFontSize());
+                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1.0f, hasConnectionError ? 0.0f : 1.0f, hasConnectionError ? 0.0f : 1.0f, 1.0f));
+                if (ImGui.MenuItem($"{FASIcons.Server}##ReconnectBtn"))
+                {
+                    Serilog.Log.Information("User performing manual BPTimer reconnect.");
+                    BPTimerManager.SpawnDataLoaded = BPTimerManager.ESpawnDataLoadStatus.NotLoaded;
+                    ConnectToBPTimer();
+                }
+                ImGui.PopStyleColor();
+                ImGui.PopFont();
+                ImGui.SetItemTooltip("Force Reconnect To BPTimer");
+                ImGui.EndDisabled();
 
                 ImGui.SetCursorPosX(MenuBarSize.X - (MenuBarButtonWidth * 3));
                 ImGui.PushFont(HelperMethods.Fonts["FASIcons"], ImGui.GetFontSize());

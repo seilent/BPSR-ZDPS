@@ -464,7 +464,7 @@ namespace BPSR_ZDPS.Windows
                             ImGui.TextUnformatted(Utils.NumberToShorthand(entity.DamageStats.ValuePerSecond));
 
                             ImGui.TableNextColumn();
-                            ImGui.Text(Utils.NumberToShorthand(entity.TotalShieldBreak));
+                            ImGui.TextUnformatted(Utils.NumberToShorthand(entity.TotalShieldBreak));
 
                             ImGui.TableNextColumn();
                             ImGui.TextUnformatted($"{entity.DamageStats.CritRate}%");
@@ -538,7 +538,7 @@ namespace BPSR_ZDPS.Windows
 
                         ImGui.PopStyleVar();
 
-                        if (SelectedEncounterIndex > -1 && ImGui.BeginPopupContextWindow())
+                        if (SelectedEncounterIndex > -1 && ImGui.BeginPopupContextWindow("##ReportContextMenu"))
                         {
                             if (ImGui.BeginMenu("Entity Filter"))
                             {
