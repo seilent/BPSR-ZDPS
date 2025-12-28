@@ -27,7 +27,29 @@ namespace BPSR_ZDPS.Meters
             {
                 ImGui.PopStyleVar();
 
-                var playerList = EncounterManager.Current?.Entities.AsValueEnumerable()
+                if (Settings.Instance.KeepPastEncounterInMeterUntilNextDamage)
+                {
+                    if (ActiveEncounter?.BattleId != EncounterManager.Current?.BattleId)
+                    {
+                        ActiveEncounter = EncounterManager.Current;
+                    }
+                    else if (ActiveEncounter?.EncounterId != EncounterManager.Current?.EncounterId)
+                    {
+                        if (EncounterManager.Current.HasStatsBeenRecorded())
+                        {
+                            ActiveEncounter = EncounterManager.Current;
+                        }
+                    }
+                }
+                else
+                {
+                    if (ActiveEncounter?.EncounterId != EncounterManager.Current?.EncounterId)
+                    {
+                        ActiveEncounter = EncounterManager.Current;
+                    }
+                }
+
+                var playerList = ActiveEncounter?.Entities.AsValueEnumerable()
                     .Where(x => x.Value.EntityType == Zproto.EEntityType.EntChar && x.Value.TotalHealing > 0)
                     .OrderByDescending(x => x.Value.TotalHealing).ToArray();
 
@@ -70,9 +92,9 @@ namespace BPSR_ZDPS.Meters
 
                     double contribution = 0.0;
                     double contributionProgressBar = 0.0;
-                    if (EncounterManager.Current.TotalHealing != 0)
+                    if (ActiveEncounter.TotalHealing != 0)
                     {
-                        contribution = Math.Round(((double)entity.TotalHealing / (double)EncounterManager.Current.TotalHealing) * 100, 4);
+                        contribution = Math.Round(((double)entity.TotalHealing / (double)ActiveEncounter.TotalHealing) * 100, 4);
 
                         if (Settings.Instance.NormalizeMeterContributions)
                         {
@@ -116,7 +138,7 @@ namespace BPSR_ZDPS.Meters
                     //if (SelectableWithHint($" {(i + 1).ToString().PadLeft((playerList.Count() < 101 ? 2 : 3), '0')}. {name}-{profession} ({entity.AbilityScore})##HpsEntry_{i}", hps_format))
                     {
                         mainWindow.entityInspector = new EntityInspector();
-                        mainWindow.entityInspector.LoadEntity(entity, EncounterManager.Current.StartTime);
+                        mainWindow.entityInspector.LoadEntity(entity, ActiveEncounter.StartTime);
                         mainWindow.entityInspector.Open();
                     }
 

@@ -32,7 +32,29 @@ namespace BPSR_ZDPS.Meters
         {
             if (ImGui.BeginListBox("##TakenMeterList", new Vector2(-1, -1)))
             {
-                var playerList = EncounterManager.Current?.Entities.AsValueEnumerable().Where(x => x.Value.EntityType == Zproto.EEntityType.EntMonster).OrderByDescending(x => x.Value.TotalTakenDamage).ToArray();
+                if (Settings.Instance.KeepPastEncounterInMeterUntilNextDamage)
+                {
+                    if (ActiveEncounter?.BattleId != EncounterManager.Current?.BattleId)
+                    {
+                        ActiveEncounter = EncounterManager.Current;
+                    }
+                    else if (ActiveEncounter?.EncounterId != EncounterManager.Current?.EncounterId)
+                    {
+                        if (EncounterManager.Current.HasStatsBeenRecorded())
+                        {
+                            ActiveEncounter = EncounterManager.Current;
+                        }
+                    }
+                }
+                else
+                {
+                    if (ActiveEncounter?.EncounterId != EncounterManager.Current?.EncounterId)
+                    {
+                        ActiveEncounter = EncounterManager.Current;
+                    }
+                }
+
+                var playerList = ActiveEncounter?.Entities.AsValueEnumerable().Where(x => x.Value.EntityType == Zproto.EEntityType.EntMonster).OrderByDescending(x => x.Value.TotalTakenDamage).ToArray();
 
                 ulong topTotalValue = 0;
 
@@ -60,9 +82,9 @@ namespace BPSR_ZDPS.Meters
 
                     double contribution = 0.0;
                     double contributionProgressBar = 0.0;
-                    if (EncounterManager.Current.TotalNpcTakenDamage != 0)
+                    if (ActiveEncounter.TotalNpcTakenDamage != 0)
                     {
-                        contribution = Math.Round(((double)entity.TotalTakenDamage / (double)EncounterManager.Current.TotalNpcTakenDamage) * 100, 4);
+                        contribution = Math.Round(((double)entity.TotalTakenDamage / (double)ActiveEncounter.TotalNpcTakenDamage) * 100, 4);
 
                         if (Settings.Instance.NormalizeMeterContributions)
                         {
@@ -92,7 +114,7 @@ namespace BPSR_ZDPS.Meters
                     if (SelectableWithHint($"{name} [{entity.UID.ToString()}]##TakenEntry_{i}", tps_format))
                     {
                         mainWindow.entityInspector = new EntityInspector();
-                        mainWindow.entityInspector.LoadEntity(entity, EncounterManager.Current.StartTime);
+                        mainWindow.entityInspector.LoadEntity(entity, ActiveEncounter.StartTime);
                         mainWindow.entityInspector.Open();
                     }
 

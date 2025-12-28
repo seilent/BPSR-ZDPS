@@ -28,7 +28,29 @@ namespace BPSR_ZDPS.Meters
             {
                 ImGui.PopStyleVar();
 
-                var playerList = EncounterManager.Current?.Entities.AsValueEnumerable()
+                if (Settings.Instance.KeepPastEncounterInMeterUntilNextDamage)
+                {
+                    if (ActiveEncounter?.BattleId != EncounterManager.Current?.BattleId)
+                    {
+                        ActiveEncounter = EncounterManager.Current;
+                    }
+                    else if (ActiveEncounter?.EncounterId != EncounterManager.Current?.EncounterId)
+                    {
+                        if (EncounterManager.Current.HasStatsBeenRecorded())
+                        {
+                            ActiveEncounter = EncounterManager.Current;
+                        }
+                    }
+                }
+                else
+                {
+                    if (ActiveEncounter?.EncounterId != EncounterManager.Current?.EncounterId)
+                    {
+                        ActiveEncounter = EncounterManager.Current;
+                    }
+                }
+
+                var playerList = ActiveEncounter?.Entities.AsValueEnumerable()
                     .Where(x => x.Value.EntityType == Zproto.EEntityType.EntChar && (Settings.Instance.OnlyShowDamageContributorsInMeters ? x.Value.TotalDamage > 0 : true))
                     .OrderByDescending(x => x.Value.TotalDamage).ToArray();
 
@@ -72,7 +94,7 @@ namespace BPSR_ZDPS.Meters
                     double contribution = 0.0;
                     double contributionProgressBar = 0.0;
                     // TotalDamage is the player only total, TotalNpcDamage is only for monster's totals
-                    ulong totalEncounterDamage = EncounterManager.Current.TotalDamage;
+                    ulong totalEncounterDamage = ActiveEncounter.TotalDamage;
 
                     if (totalEncounterDamage != 0)
                     {
@@ -133,7 +155,7 @@ namespace BPSR_ZDPS.Meters
                     //if (ImGui.Selectable($"{name}-{profession} ({entity.AbilityScore}) [{entity.UID.ToString()}] ({entity.TotalDamage})##DpsEntry_{i}"))
                     {
                         mainWindow.entityInspector = new EntityInspector();
-                        mainWindow.entityInspector.LoadEntity(entity, EncounterManager.Current.StartTime);
+                        mainWindow.entityInspector.LoadEntity(entity, ActiveEncounter.StartTime);
                         mainWindow.entityInspector.Open();
                     }
 

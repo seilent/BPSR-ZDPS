@@ -31,6 +31,7 @@ namespace BPSR_ZDPS.Windows
         static bool splitEncountersOnNewPhases;
         static bool displayTruePerSecondValuesInMeters;
         static bool allowGamepadNavigationInputInZDPS;
+        static bool keepPastEncounterInMeterUntilNextDamage;
         static bool useDatabaseForEncounterHistory;
         static int databaseRetentionPolicyDays;
         static bool limitEncounterBuffTrackingWithoutDatabase;
@@ -551,6 +552,16 @@ namespace BPSR_ZDPS.Windows
                         ImGui.Indent();
                         ImGui.BeginDisabled(true);
                         ImGui.TextWrapped("When enabled, gamepad input can navigate and control the ZDPS windows.\nNote: Gamepad input may control the windows even without them specifically in focus.");
+                        ImGui.EndDisabled();
+                        ImGui.Unindent();
+
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text("Keep Past Encounter In Meter UI Until Next Damage: ");
+                        ImGui.SameLine();
+                        ImGui.Checkbox("##KeepPastEncounterInMeterUntilNextDamage", ref keepPastEncounterInMeterUntilNextDamage);
+                        ImGui.Indent();
+                        ImGui.BeginDisabled(true);
+                        ImGui.TextWrapped("When enabled, the previous Encounter will remain in the Meter UI until damage has been dealt in the current Encounter.\nThe Meter UI will still swap to the current Encounter on Battle change events (these are generally Map changes).");
                         ImGui.EndDisabled();
                         ImGui.Unindent();
 
@@ -1291,6 +1302,7 @@ namespace BPSR_ZDPS.Windows
             splitEncountersOnNewPhases = Settings.Instance.SplitEncountersOnNewPhases;
             displayTruePerSecondValuesInMeters = Settings.Instance.DisplayTruePerSecondValuesInMeters;
             allowGamepadNavigationInputInZDPS = Settings.Instance.AllowGamepadNavigationInputInZDPS;
+            keepPastEncounterInMeterUntilNextDamage = Settings.Instance.KeepPastEncounterInMeterUntilNextDamage;
 
             useDatabaseForEncounterHistory = Settings.Instance.UseDatabaseForEncounterHistory;
             databaseRetentionPolicyDays = Settings.Instance.DatabaseRetentionPolicyDays;
@@ -1370,6 +1382,7 @@ namespace BPSR_ZDPS.Windows
             Settings.Instance.SplitEncountersOnNewPhases = splitEncountersOnNewPhases;
             Settings.Instance.DisplayTruePerSecondValuesInMeters = displayTruePerSecondValuesInMeters;
             Settings.Instance.AllowGamepadNavigationInputInZDPS = allowGamepadNavigationInputInZDPS;
+            Settings.Instance.KeepPastEncounterInMeterUntilNextDamage = keepPastEncounterInMeterUntilNextDamage;
 
             Settings.Instance.UseDatabaseForEncounterHistory = useDatabaseForEncounterHistory;
             Settings.Instance.DatabaseRetentionPolicyDays = databaseRetentionPolicyDays;

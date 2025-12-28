@@ -26,6 +26,7 @@ public class Settings
     public bool SplitEncountersOnNewPhases { get; set; } = true;
     public bool DisplayTruePerSecondValuesInMeters { get; set; } = false;
     public bool AllowGamepadNavigationInputInZDPS { get; set; } = false;
+    public bool KeepPastEncounterInMeterUntilNextDamage { get; set; } = false;
     public bool UseDatabaseForEncounterHistory { get; set; } = true;
     public int DatabaseRetentionPolicyDays { get; set; } = 0;
     public bool LimitEncounterBuffTrackingWithoutDatabase { get; set; } = false;
