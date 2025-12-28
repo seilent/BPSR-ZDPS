@@ -191,6 +191,15 @@ namespace BPSR_ZDPS
                 Log.Information("Loaded BuffOverrides.en.json");
             }
 
+            // Note: The typo in the name is correct, that's how it comes from the devs
+            string sceneEventDungeonConfigTableFile = Path.Combine(Utils.DATA_DIR_NAME, "SceneEventDuneonConfigTable.json");
+            if (File.Exists(sceneEventDungeonConfigTableFile))
+            {
+                var sceneEventDungeonConfigs = JsonConvert.DeserializeObject<Dictionary<string, SceneEventDungeonConfig>>(File.ReadAllText(sceneEventDungeonConfigTableFile));
+                HelperMethods.DataTables.SceneEventDungeonConfigs.Data = sceneEventDungeonConfigs;
+                Log.Information("Loaded SceneEventDuneonConfigTable.json");
+            }
+
             try
             {
                 System.Reflection.FieldInfo fi = typeof(Managers.External.BPTimerManager).GetField(Encoding.UTF8.GetString([0x41, 0x50, 0x49, 0x5f, 0x4b, 0x45, 0x59]),

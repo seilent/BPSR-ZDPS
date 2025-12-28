@@ -1785,6 +1785,9 @@
     <None Update="Data\MonsterTable.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Data\SceneEventDuneonConfigTable.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Data\SceneTable.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

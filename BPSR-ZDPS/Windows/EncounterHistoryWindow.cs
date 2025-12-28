@@ -299,6 +299,7 @@ namespace BPSR_ZDPS.Windows
                     {
                         if (SelectedEncounterIndex != -1 && encounters[SelectedEncounterIndex] != null)
                         {
+                            Serilog.Log.Information($"Sending Debug Report for Selected Encounter Index {SelectedEncounterIndex}...");
                             var img = ReportImgGen.CreateReportImg(encounters[SelectedEncounterIndex]);
                             WebManager.SubmitReportToWebhook(encounters[SelectedEncounterIndex], img, Settings.Instance.WebhookReportsDiscordUrl);
                         }

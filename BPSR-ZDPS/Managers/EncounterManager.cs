@@ -116,6 +116,8 @@ namespace BPSR_ZDPS
                     }
                 }
 
+                CheckTimeOutStatus(reason);
+
                 // This is safe to call to ensure we're sending a proper End Final before a new Encounter is made no matter what
                 BattleStateMachine.SetDeferredEncounterEndFinalData(DateTime.Now.Subtract(new TimeSpan(0, 0, 1)), new EncounterEndFinalData() { EncounterId = Current.EncounterId, BattleId = Current.BattleId, Reason = reason });
                 BattleStateMachine.CheckDeferredCalls();
@@ -124,12 +126,28 @@ namespace BPSR_ZDPS
 
             //CurrentEncounter = Encounters.Count - 1;
 
-            var currentEncounterHolding = Current;
-            
+            int currentDifficulty = 0;
+            Encounter? priorEncounter = Current;
+            if (Current != null)
+            {
+                DB.InsertEncounter(Current);
+                currentDifficulty = Current.ExData.DungeonDifficulty;
+            }
+
             Current = new Encounter(CurrentBattleId);
-            // We need to +1 here because when we insert an encounter, it would be taking GetNextEncounterId's value
-            Current.EncounterId = DB.GetNextEncounterId() + 1;
-            if ((reason == EncounterStartReason.NewObjective))
+            Current.EncounterId = DB.GetNextEncounterId();
+            if (priorEncounter != null && (reason == EncounterStartReason.NewObjective || reason == EncounterStartReason.Wipe || reason == EncounterStartReason.Restart))
+            {
+                // Bring over basic data and attributes for the characters of the previous phase into the new one
+                var priorCharacters = priorEncounter.Entities.AsValueEnumerable().Where(x => x.Value.EntityType == EEntityType.EntChar);
+                foreach (var priorChar in priorCharacters)
+                {
+                    var newChar = Current.GetOrCreateEntity(priorChar.Key);
+                    newChar.SetHpValuesNoUpdate(priorChar.Value.Hp, priorChar.Value.MaxHp);
+                    newChar.Attributes = priorChar.Value.Attributes.ToDictionary();
+                }
+            }
+            if (reason == EncounterStartReason.NewObjective)
             {
                 if (!string.IsNullOrEmpty(priorBossName))
                 {
@@ -145,6 +163,7 @@ namespace BPSR_ZDPS
             if (LevelMapId > 0)
             {
                 SetSceneId(LevelMapId);
+                Current.SetDungeonDifficulty(currentDifficulty);
             }
 
             UpdateTruePerValuesCTS = new();
@@ -158,14 +177,9 @@ namespace BPSR_ZDPS
             }
 
             OnEncounterStart(new EventArgs());
-
-            if (currentEncounterHolding != null)
-            {
-                DB.InsertEncounter(currentEncounterHolding);
-            }
         }
 
-        public static void StopEncounter(bool isKnownFinal = false)
+        public static void StopEncounter(bool isKnownFinal = false, EncounterStartReason reason = EncounterStartReason.None)
         {
             if (Current != null && Current.EndTime == DateTime.MinValue)
             {
@@ -174,19 +188,38 @@ namespace BPSR_ZDPS
 
             UpdateTruePerValuesCTS.Cancel();
 
+            CheckTimeOutStatus(reason);
+
             OnEncounterEnd(new EventArgs());
 
             if (isKnownFinal)
             {
                 // We don't actually want to end instantly because some packets are going to be delayed and come in _after_ this and they are typically the most important ones to not miss
-                BattleStateMachine.SetDeferredEncounterEndFinalData(DateTime.Now.AddSeconds(2), new EncounterEndFinalData() { EncounterId = Current.EncounterId, BattleId = Current.BattleId });
+                BattleStateMachine.SetDeferredEncounterEndFinalData(DateTime.Now.AddSeconds(2), new EncounterEndFinalData() { EncounterId = Current.EncounterId, BattleId = Current.BattleId, Reason = reason });
             }
             else
             {
-                BattleStateMachine.SetDeferredEncounterEndFinalData(DateTime.Now.AddSeconds(5), new EncounterEndFinalData() { EncounterId = Current.EncounterId, BattleId = Current.BattleId });
+                BattleStateMachine.SetDeferredEncounterEndFinalData(DateTime.Now.AddSeconds(5), new EncounterEndFinalData() { EncounterId = Current.EncounterId, BattleId = Current.BattleId, Reason = reason });
             }
 
             EntityCache.Instance.Save();
+        }
+
+        static void CheckTimeOutStatus(EncounterStartReason reason)
+        {
+            if (!Current.ExData.IsTimedOut && reason == EncounterStartReason.DungeonStateEnd && Current.SceneId > 0)
+            {
+                if (HelperMethods.DataTables.SceneEventDungeonConfigs.Data.TryGetValue(Current.SceneId.ToString(), out var sceneEventDungeonConfig))
+                {
+                    if (sceneEventDungeonConfig.LimitTime > 0 && Current.BossUUID == 0)
+                    {
+                        if (Current.GetDuration().TotalSeconds >= (sceneEventDungeonConfig.LimitTime + Current.ExData.DungeonTimeDeathChange))
+                        {
+                            Current.SetTimedOutState(true);
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -327,6 +360,7 @@ namespace BPSR_ZDPS
         TimedOut = 5,
         BenchmarkStart = 6,
         BenchmarkEnd = 7,
+        DungeonStateEnd = 8,
     }
 
     public class Encounter
@@ -371,7 +405,7 @@ namespace BPSR_ZDPS
         public event ThreatListUpdatedEventHandler EntityThreatListUpdated; // This is not a real list, just the current target and their threat value
 
         public EncounterExData ExData { get; set; } = new();
-        public byte[] ExDataBlob {  get; set; }
+        public byte[] ExDataBlob { get; set; }
 
         // Fields here are not stored in the Database
         public List<long> BossUUIDs { get; set; } = new();
@@ -635,6 +669,11 @@ namespace BPSR_ZDPS
             ChannelLine = line;
         }
 
+        public void SetDungeonDifficulty(int difficulty)
+        {
+            ExData.DungeonDifficulty = difficulty;
+        }
+
         public void IncrementDeaths()
         {
             TotalDeaths++;
@@ -648,6 +687,11 @@ namespace BPSR_ZDPS
         public void SetWipeState(bool state)
         {
             IsWipe = state;
+        }
+
+        public void SetTimedOutState(bool state)
+        {
+            ExData.IsTimedOut = state;
         }
 
         public object? GetAttrKV(long uuid, string key)
@@ -807,7 +851,7 @@ namespace BPSR_ZDPS
             Entity entity = (Entity)sender;
 
             // This will result in the last updated entity to become the new boss as long as the HP is not max
-            if (entity.Hp > -1 && entity.MaxHp > 0 && entity.Hp < entity.MaxHp)
+            if (entity.Hp > -1 && entity.MaxHp > 0 && entity.Hp <= entity.MaxHp)
             {
                 long attrId = 0;
                 var attr_id = entity.GetAttrKV("AttrId");
@@ -867,8 +911,12 @@ namespace BPSR_ZDPS
     [ProtoContract]
     public class EncounterExData
     {
-        [ProtoMember(1)]
-        public string Test { get; set; } = "UWU";
+        [ProtoMember(2)]
+        public int DungeonDifficulty { get; set; } = 0;
+        [ProtoMember(3)]
+        public bool IsTimedOut { get; set; } = false;
+        [ProtoMember(4)]
+        public int DungeonTimeDeathChange { get; set; } = 0;
 
         public EncounterExData() { }
     }
@@ -1091,6 +1139,12 @@ namespace BPSR_ZDPS
         public void SetHpNoUpdate(long hp)
         {
             Hp = hp;
+        }
+
+        public void SetHpValuesNoUpdate(long hp, long maxHp)
+        {
+            Hp = hp;
+            MaxHp = MaxHp;
         }
 
         public void SetHpValues(long hp = -1, long maxHp = -1)

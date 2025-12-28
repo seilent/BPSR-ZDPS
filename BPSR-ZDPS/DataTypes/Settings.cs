@@ -22,6 +22,7 @@ public class Settings
     public bool ShowSubProfessionNameInMeters { get; set; } = true;
     public bool UseAutomaticWipeDetection { get; set; } = true;
     public bool SkipTeleportStateCheckInAutomaticWipeDetection { get; set; } = false;
+    public bool AllowWipeRecalculationOverwriting { get; set; } = false;
     public bool SplitEncountersOnNewPhases { get; set; } = true;
     public bool DisplayTruePerSecondValuesInMeters { get; set; } = false;
     public bool AllowGamepadNavigationInputInZDPS { get; set; } = false;

@@ -10,8 +10,8 @@ public class DungeonEventData : BlobType
 {
     public int? EventId;
     public int? StartTime;
-    public int? State;
-    public int? Result;
+    public Zproto.DungeonEventState? State;
+    public Zproto.DungeonEventResult? Result;
     public Dictionary<int, DungeonTargetData>? DungeonTarget;
 
     public DungeonEventData()
@@ -33,10 +33,10 @@ public class DungeonEventData : BlobType
                 StartTime = blob.ReadInt();
                 return true;
             case Zproto.DungeonEventData.StateFieldNumber:
-                State = blob.ReadInt();
+                State = (Zproto.DungeonEventState)blob.ReadInt();
                 return true;
             case Zproto.DungeonEventData.ResultFieldNumber:
-                Result = blob.ReadInt();
+                Result = (Zproto.DungeonEventResult)blob.ReadInt();
                 return true;
             case Zproto.DungeonEventData.DungeonTargetFieldNumber:
                 DungeonTarget = blob.ReadHashMap<int, DungeonTargetData>();

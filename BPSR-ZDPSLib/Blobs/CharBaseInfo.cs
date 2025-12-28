@@ -13,7 +13,7 @@ public class CharBaseInfo : BlobType
     public long? ShowId;
     public uint? ServerId;
     public string? Name;
-    public int? Gender;
+    public Zproto.EGender? Gender;
     public float? X;
     public float? Y;
     public float? Z;
@@ -74,7 +74,7 @@ public class CharBaseInfo : BlobType
                 Name = blob.ReadString();
                 return true;
             case Zproto.CharBaseInfo.GenderFieldNumber:
-                Gender = blob.ReadInt();
+                Gender = (Zproto.EGender)blob.ReadInt();
                 return true;
             case Zproto.CharBaseInfo.IsDeletedFieldNumber:
                 // TODO: Implement blob.ReadBool();

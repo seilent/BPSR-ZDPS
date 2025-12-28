@@ -8,16 +8,16 @@ namespace BPSR_DeepsLib.Blobs;
 
 public class DungeonTimerInfo : BlobType
 {
-    public int? TimerType;
+    public Zproto.EDungeonTimerType? TimerType;
     public int? StartTime;
     public int? DungeonTimes;
-    public int? Direction;
+    public Zproto.EDungeonTimerDirection? Direction;
     public int? Index;
     public int? ChangeTime;
-    public int? EffectType;
+    public Zproto.EDungeonTimerEffectType? EffectType;
     public int? PauseTime;
     public int? PauseTotalTime;
-    public int? OutLookType;
+    public Zproto.EDungeonTimerTimerLookType? OutLookType;
 
     public DungeonTimerInfo()
     {
@@ -32,7 +32,7 @@ public class DungeonTimerInfo : BlobType
         switch (index)
         {
             case Zproto.DungeonTimerInfo.TypeFieldNumber:
-                TimerType = blob.ReadInt();
+                TimerType = (Zproto.EDungeonTimerType)blob.ReadInt();
                 return true;
             case Zproto.DungeonTimerInfo.StartTimeFieldNumber:
                 StartTime = blob.ReadInt();
@@ -41,7 +41,7 @@ public class DungeonTimerInfo : BlobType
                 DungeonTimes = blob.ReadInt();
                 return true;
             case Zproto.DungeonTimerInfo.DirectionFieldNumber:
-                Direction = blob.ReadInt();
+                Direction = (Zproto.EDungeonTimerDirection)blob.ReadInt();
                 return true;
             case Zproto.DungeonTimerInfo.IndexFieldNumber:
                 Index = blob.ReadInt();
@@ -50,7 +50,7 @@ public class DungeonTimerInfo : BlobType
                 ChangeTime = blob.ReadInt();
                 return true;
             case Zproto.DungeonTimerInfo.EffectTypeFieldNumber:
-                EffectType = blob.ReadInt();
+                EffectType = (Zproto.EDungeonTimerEffectType)blob.ReadInt();
                 return true;
             case Zproto.DungeonTimerInfo.PauseTimeFieldNumber:
                 PauseTime = blob.ReadInt();
@@ -59,7 +59,7 @@ public class DungeonTimerInfo : BlobType
                 PauseTotalTime = blob.ReadInt();
                 return true;
             case Zproto.DungeonTimerInfo.OutLookTypeFieldNumber:
-                OutLookType = blob.ReadInt();
+                OutLookType = (Zproto.EDungeonTimerTimerLookType)blob.ReadInt();
                 return true;
             default:
                 return false;

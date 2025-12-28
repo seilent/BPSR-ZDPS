@@ -1165,6 +1165,11 @@ namespace BPSR_ZDPS
                 }
             }
 
+            if (vData.DungeonSceneInfo != null)
+            {
+                EncounterManager.Current.SetDungeonDifficulty(vData.DungeonSceneInfo.Difficulty);
+            }
+
             EncounterManager.Current.DungeonState = vData.FlowInfo.State;
             BattleStateMachine.DungeonStateHistoryAdd(vData.FlowInfo.State);
 
@@ -1187,6 +1192,11 @@ namespace BPSR_ZDPS
                 System.Diagnostics.Debug.WriteLine($"Damage.Damages[{damage.Key}]: {damage.Value}");
             }
 
+            if (vData.TimerInfo != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"TimerInfo = {vData.TimerInfo.Type}, {vData.TimerInfo.StartTime}, {vData.TimerInfo.DungeonTimes}, {vData.TimerInfo.Direction}, {vData.TimerInfo.Index}, {vData.TimerInfo.ChangeTime}, {vData.TimerInfo.EffectType}, {vData.TimerInfo.PauseTime}, {vData.TimerInfo.PauseTotalTime}, {vData.TimerInfo.OutLookType}");
+            }
+
             System.Diagnostics.Debug.WriteLine($"syncDungeonData.vData State={vData.FlowInfo.State},TotalScore={vData.DungeonScore.TotalScore},CurRatio={vData.DungeonScore.CurRatio}");
         }
 
@@ -1205,6 +1215,12 @@ namespace BPSR_ZDPS
 
             if (currentUserUuid != 0)
             {
+                if (EncounterManager.Current.IsWipe)
+                {
+                    // This Encounter already has been reported as a wipe and should be in the processing of ending already
+                    return;
+                }
+
                 var playerEntity = EncounterManager.Current.GetOrCreateEntity(currentUserUuid);
                 var attrState = playerEntity.GetAttrKV("AttrState");
                 if (attrState != null)
@@ -1263,6 +1279,40 @@ namespace BPSR_ZDPS
                         isStateWipePattern = true;
                     }
                 }
+
+                // TODO: Currently a local player state change can incorrectly report a wipe pattern in rare cases where it wasn't an actual wipe
+                // An additional check needs to be performed to help validate the wipe, or overturn the result if other players weren't also dead/respawning
+                
+                // This Encounter-wide status check can help ensure real wipes are found, but does not overturn a local player state match a wipe pattern
+                // The follow-up Boss HP check _should hopefully_ protect against the vast majority of incorrect player state pattern matches
+                var characterList = EncounterManager.Current.Entities.AsValueEnumerable().Where(x => x.Value.EntityType == EEntityType.EntChar);
+                bool areAllCharactersDead = true;
+                foreach (var character in characterList)
+                {
+                    var charState = character.Value.GetAttrKV("AttrState");
+                    if (charState != null)
+                    {
+                        if ((EActorState)charState != EActorState.ActorStateDead && character.Value.Hp > 0)
+                        {
+                            areAllCharactersDead = false;
+                        }
+                    }
+                    else if (character.Value.Hp > 0 || character.Value.MaxHp == 0)
+                    {
+                        areAllCharactersDead = false;
+                    }
+                }
+                if (areAllCharactersDead && !isStateWipePattern)
+                {
+                    Log.Debug($"All characters were reported as actively dead in current Encounter. Overriding isStateWipePattern to true.");
+                    isStateWipePattern = true;
+                }
+                if (Settings.Instance.AllowWipeRecalculationOverwriting && !areAllCharactersDead && isStateWipePattern)
+                {
+                    Log.Debug($"Not all characters were reported as actively dead in current Encounter. Overriding isStateWipePattern to false.");
+                    isStateWipePattern = false;
+                }
+
                 //System.Diagnostics.Debug.WriteLine($"useNoTeleportWipePattern == {useNoTeleportWipePattern} && isStateWipePattern == {isStateWipePattern}");
 
                 if (isStateWipePattern)
@@ -1382,6 +1432,10 @@ namespace BPSR_ZDPS
             if (dun?.TimerInfo != null)
             {
                 System.Diagnostics.Debug.WriteLine($"dun.TimerInfo = {dun.TimerInfo.TimerType}, {dun.TimerInfo.StartTime}, {dun.TimerInfo.DungeonTimes}, {dun.TimerInfo.Direction}, {dun.TimerInfo.Index}, {dun.TimerInfo.ChangeTime}, {dun.TimerInfo.EffectType}, {dun.TimerInfo.PauseTime}, {dun.TimerInfo.PauseTotalTime}, {dun.TimerInfo.OutLookType}");
+                if (dun.TimerInfo.EffectType == EDungeonTimerEffectType.Sub && dun.TimerInfo.ChangeTime != null)
+                {
+                    EncounterManager.Current.ExData.DungeonTimeDeathChange += (int)dun.TimerInfo.ChangeTime;
+                }
             }
 
             if (dun?.DungeonVarAll?.DungeonVarAllMap?.Count > 0)

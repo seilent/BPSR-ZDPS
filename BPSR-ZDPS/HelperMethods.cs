@@ -30,6 +30,7 @@ namespace BPSR_ZDPS
             public static ModEffectTable ModEffects = new ModEffectTable();
             public static ModLinkEffectTable ModLinkEffects = new ModLinkEffectTable();
             public static SkillFightLevelTable SkillFightLevels = new SkillFightLevelTable();
+            public static SceneEventDungeonConfigTable SceneEventDungeonConfigs = new SceneEventDungeonConfigTable();
         }
     }
 }

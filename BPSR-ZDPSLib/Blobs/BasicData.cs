@@ -12,7 +12,7 @@ public class BasicData : BlobType
     public long? ShowId;
     public string Name;
     public int? Gender;
-    public int? BodySize;
+    public Zproto.EBodySize? BodySize;
     public int? Level;
     public int? SceneId;
     public List<int>? PersonalState;
@@ -52,7 +52,7 @@ public class BasicData : BlobType
                 Gender = blob.ReadInt();
                 return true;
             case Zproto.BasicData.BodySizeFieldNumber:
-                BodySize = blob.ReadInt();
+                BodySize = (Zproto.EBodySize)blob.ReadInt();
                 return true;
             case Zproto.BasicData.LevelFieldNumber:
                 Level = blob.ReadInt();

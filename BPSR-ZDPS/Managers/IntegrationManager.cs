@@ -14,6 +14,8 @@ namespace BPSR_ZDPS
 {
     public static class IntegrationManager
     {
+        static ulong? LastReportedEncounterId;
+
         public static void InitBindings()
         {
             EncounterManager.EncounterEndFinal += EncounterManager_EncounterEndFinal;
@@ -25,10 +27,13 @@ namespace BPSR_ZDPS
 
         private static void EncounterManager_EncounterEndFinal(EncounterEndFinalData e)
         {
+            // Hold onto a reference for the Encounter as once we enter the task it will no longer be the current one and may already be moved into the database
+            var encounter = EncounterManager.Current;
+
             Log.Information($"IntegrationManager EncounterManager_EncounterEndFinal [Reason = {e.Reason}]");
 
             // Only care about encounters with actual data in them
-            if (!EncounterManager.Current.HasStatsBeenRecorded())
+            if (!encounter.HasStatsBeenRecorded())
             {
                 Log.Debug($"Encounter has no recorded stats, stopping Report");
                 return;
@@ -42,7 +47,7 @@ namespace BPSR_ZDPS
             }
 
             // Don't create reports for Null (Open World) states as we don't handle their encounters nicely yet
-            if (EncounterManager.Current.DungeonState == EDungeonState.DungeonStateNull && e.Reason != EncounterStartReason.Restart && e.Reason != EncounterStartReason.NewObjective)
+            if (encounter.DungeonState == EDungeonState.DungeonStateNull && e.Reason != EncounterStartReason.Restart && e.Reason != EncounterStartReason.NewObjective)
             {
                 if (BattleStateMachine.DungeonStateHistory.Count > 0)
                 {
@@ -67,7 +72,7 @@ namespace BPSR_ZDPS
             // We perform a check to make sure the setting is above 0 before iterating through the entity list to improve performance for most users who do not set a min count
             if (Settings.Instance.MinimumPlayerCountToCreateReport > 0)
             {
-                if (EncounterManager.Current.Entities.Count(x => x.Value.EntityType == EEntityType.EntChar) < Settings.Instance.MinimumPlayerCountToCreateReport)
+                if (encounter.Entities.Count(x => x.Value.EntityType == EEntityType.EntChar) < Settings.Instance.MinimumPlayerCountToCreateReport)
                 {
                     return;
                 }
@@ -77,25 +82,32 @@ namespace BPSR_ZDPS
             // TODO: Allow reporting if there are 2 or more Elites in the Encounter. This will solve Guild Hunt no longer being reported along with a couple other edge cases.
 
             // Only create reports when there is a boss in the encounter and it is dead or the encounter is a wipe
-            EncounterManager.Current.Entities.TryGetValue(EncounterManager.Current.BossUUID, out var bossEntity);
+            encounter.Entities.TryGetValue(encounter.BossUUID, out var bossEntity);
             var bossState = bossEntity?.GetAttrKV("AttrState");
             var bossHp = bossEntity?.GetAttrKV("AttrHp");
             var bossMaxHp = bossEntity?.GetAttrKV("AttrMaxHp");
             if (bossEntity != null)
             {
-                Log.Debug($"BossAttrHp={bossHp}, BossAttrMaxHp={bossMaxHp}, HpPct={EncounterManager.Current.BossHpPct}");
+                Log.Debug($"BossAttrHp={bossHp}, BossAttrMaxHp={bossMaxHp}, HpPct={encounter.BossHpPct}");
             }
-            if (e.Reason == EncounterStartReason.NewObjective || e.Reason == EncounterStartReason.Restart ||
-                (EncounterManager.Current.BossUUID > 0 &&
+            if (e.Reason == EncounterStartReason.NewObjective || e.Reason == EncounterStartReason.Restart || e.Reason == EncounterStartReason.DungeonStateEnd ||
+                (encounter.BossUUID > 0 &&
                         (bossState != null &&
                             (bossEntity?.Hp == 0 || (EActorState)bossState == EActorState.ActorStateDead) ||
-                            EncounterManager.Current.IsWipe)))
+                            encounter.IsWipe)))
             {
+                
+                if (LastReportedEncounterId != null && LastReportedEncounterId == encounter.EncounterId)
+                {
+                    Log.Warning($"IntegrationManager was attempting to report the same EncounterId [{encounter.EncounterId}] twice in a row. Aborting the Report process.");
+                    return;
+                }
+
                 Log.Debug($"IntegrationManager is creating an Encounter Report [Reason = {e.Reason}].");
+                LastReportedEncounterId = encounter.EncounterId;
+
                 HelperMethods.DeferredImGuiRenderAction = () =>
                 {
-                    // Hold onto a reference for the Encounter as once we enter the task it will no longer be the current one and may already be moved into the database
-                    var encounter = EncounterManager.Current;
                     if (encounter == null)
                     {
                         Log.Error($"IntegrationManager CreateReportImg had EncounterManager.Current == Null! This should not happen. Aborting the Report process.");
@@ -154,7 +166,7 @@ namespace BPSR_ZDPS
             else
             {
                 Log.Information($"IntegrationManager EncounterEndFinal did not detect a dead boss or wipe in Battle:{e.BattleId} Encounter: {e.EncounterId}.");
-                Log.Debug($"BossName:{EncounterManager.Current.BossName} BossUUID:{EncounterManager.Current.BossUUID}, BossHpPct:{EncounterManager.Current.BossHpPct}, IsWipe:{EncounterManager.Current.IsWipe}");
+                Log.Debug($"BossName:{encounter.BossName} BossUUID:{encounter.BossUUID}, BossHpPct:{encounter.BossHpPct}, IsWipe:{encounter.IsWipe}");
                 if (bossState != null)
                 {
                     Log.Debug($"BossState {(EActorState)bossState}");

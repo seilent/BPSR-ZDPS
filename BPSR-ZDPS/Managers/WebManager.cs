@@ -323,7 +323,35 @@ namespace BPSR_ZDPS.Web
         {
             var unixStartTime = new DateTimeOffset(encounter.StartTime).ToUnixTimeSeconds();
 
-            string encounterName = $"**Encounter**:{(encounter.IsWipe ? " `Wipe`" : "")} {encounter.SceneName}{(!string.IsNullOrEmpty(encounter.SceneSubName) ? $" - {encounter.SceneSubName}" : "")}";
+            string sceneSubName = "";
+            if (!string.IsNullOrEmpty(encounter.SceneSubName))
+            {
+                sceneSubName = $" - {encounter.SceneSubName}";
+            }
+
+            string difficulty = "";
+            if (encounter.ExData.DungeonDifficulty > 0)
+            {
+                difficulty = $" (Difficulty {encounter.ExData.DungeonDifficulty})";
+            }
+
+            string clearStatus = "";
+            if (encounter.IsWipe)
+            {
+                clearStatus = $" `Wipe`";
+            }
+            else if (encounter.ExData.IsTimedOut)
+            {
+                clearStatus = $" `TimedOut`";
+            }
+
+            string gameTimeStatus = "";
+            if (encounter.ExData.DungeonTimeDeathChange != 0)
+            {
+                gameTimeStatus = $" (Death Modified: `{(encounter.EndTime.AddSeconds(Math.Abs(encounter.ExData.DungeonTimeDeathChange)) - encounter.StartTime).ToString(@"hh\:mm\:ss")}`)";
+            }
+
+            string encounterName = $"**Encounter**:{clearStatus} {encounter.SceneName}{sceneSubName}{difficulty}";
             string bossDetails = $"{(!string.IsNullOrEmpty(encounter.BossName) ? $"**Boss**: {encounter.BossName}{(encounter.BossHpPct > 0 ? $" ({Math.Round(encounter.BossHpPct / 1000.0f, 2)}%)" : "")}" : "")}";
 
             var msgContentBuilder = new StringBuilder();
@@ -335,7 +363,7 @@ namespace BPSR_ZDPS.Web
                 msgContentBuilder.AppendLine(bossDetails);
             }
             msgContentBuilder.AppendLine($"**Started At**: <t:{unixStartTime}:F> <t:{unixStartTime}:R>");
-            msgContentBuilder.AppendLine($"**Duration**: {(encounter.EndTime - encounter.StartTime).ToString(@"hh\:mm\:ss")}");
+            msgContentBuilder.AppendLine($"**Duration**: `{(encounter.EndTime - encounter.StartTime).ToString(@"hh\:mm\:ss")}`{gameTimeStatus}");
             msgContentBuilder.AppendLine($"**ZTeamID**: ``{teamId}``");
 
             var msg = new DiscordWebhookPayload("ZDPS", msgContentBuilder.ToString())

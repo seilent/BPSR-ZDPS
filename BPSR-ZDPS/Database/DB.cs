@@ -94,7 +94,10 @@ namespace BPSR_ZDPS
                                     Formatting = Formatting.None,
                                     TypeNameHandling = TypeNameHandling.All,
                                 };
-                                serializer.Serialize(writer, encounter.Entities);
+                                lock (encounter.Entities)
+                                {
+                                    serializer.Serialize(writer, encounter.Entities);
+                                }
                                 writer.Flush();
                             }
                             streamWriter.Flush();

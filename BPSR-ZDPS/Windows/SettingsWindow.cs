@@ -27,6 +27,7 @@ namespace BPSR_ZDPS.Windows
         static bool showSubProfessionNameInMeters;
         static bool useAutomaticWipeDetection;
         static bool skipTeleportStateCheckInAutomaticWipeDetection;
+        static bool allowWipeRecalculationOverwriting;
         static bool splitEncountersOnNewPhases;
         static bool displayTruePerSecondValuesInMeters;
         static bool allowGamepadNavigationInputInZDPS;
@@ -439,6 +440,16 @@ namespace BPSR_ZDPS.Windows
                         ImGui.Indent();
                         ImGui.BeginDisabled(true);
                         ImGui.TextWrapped("When enabled, the 'Teleport' Player State requirement in Automatic Wipe Detection is not performed. You probably want this Disabled.");
+                        ImGui.EndDisabled();
+                        ImGui.Unindent();
+
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text("Allow Wipe Recalculation Overwriting: ");
+                        ImGui.SameLine();
+                        ImGui.Checkbox("##AllowWipeRecalculationOverwriting", ref allowWipeRecalculationOverwriting);
+                        ImGui.Indent();
+                        ImGui.BeginDisabled(true);
+                        ImGui.TextWrapped("When enabled, the internal process of checking the Dead status of all players in the Encounter is allowed to overwrite the detected wipe status from the normal automatic detector.\nAllowing this to overturn results is experimental so only enable it if you run into incorrect wipe reporting.");
                         ImGui.EndDisabled();
                         ImGui.Unindent();
 
@@ -1276,6 +1287,7 @@ namespace BPSR_ZDPS.Windows
             showSubProfessionNameInMeters = Settings.Instance.ShowSubProfessionNameInMeters;
             useAutomaticWipeDetection = Settings.Instance.UseAutomaticWipeDetection;
             skipTeleportStateCheckInAutomaticWipeDetection = Settings.Instance.SkipTeleportStateCheckInAutomaticWipeDetection;
+            allowWipeRecalculationOverwriting = Settings.Instance.AllowWipeRecalculationOverwriting;
             splitEncountersOnNewPhases = Settings.Instance.SplitEncountersOnNewPhases;
             displayTruePerSecondValuesInMeters = Settings.Instance.DisplayTruePerSecondValuesInMeters;
             allowGamepadNavigationInputInZDPS = Settings.Instance.AllowGamepadNavigationInputInZDPS;
@@ -1354,6 +1366,7 @@ namespace BPSR_ZDPS.Windows
             Settings.Instance.ShowSubProfessionNameInMeters = showSubProfessionNameInMeters;
             Settings.Instance.UseAutomaticWipeDetection = useAutomaticWipeDetection;
             Settings.Instance.SkipTeleportStateCheckInAutomaticWipeDetection = skipTeleportStateCheckInAutomaticWipeDetection;
+            Settings.Instance.AllowWipeRecalculationOverwriting = allowWipeRecalculationOverwriting;
             Settings.Instance.SplitEncountersOnNewPhases = splitEncountersOnNewPhases;
             Settings.Instance.DisplayTruePerSecondValuesInMeters = displayTruePerSecondValuesInMeters;
             Settings.Instance.AllowGamepadNavigationInputInZDPS = allowGamepadNavigationInputInZDPS;

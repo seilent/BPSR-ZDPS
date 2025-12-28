@@ -4,7 +4,7 @@ namespace BPSR_DeepsLib.Blobs;
 
 public class DungeonFlowInfo(BlobReader blob) : BlobType(ref blob)
 {
-    public int? State;
+    public Zproto.EDungeonState? State;
     public int? ActiveTime;
     public int? ReadyTime;
     public int? PlayTime;
@@ -18,7 +18,7 @@ public class DungeonFlowInfo(BlobReader blob) : BlobType(ref blob)
         switch (index)
         {
             case Zproto.DungeonFlowInfo.StateFieldNumber:
-                State = blob.ReadInt();
+                State = (Zproto.EDungeonState)blob.ReadInt();
                 return true;
             case Zproto.DungeonFlowInfo.ActiveTimeFieldNumber:
                 ActiveTime = blob.ReadInt();

@@ -64,7 +64,7 @@ namespace BPSR_ZDPS
             else if (dungeonState == EDungeonState.DungeonStateEnd)
             {
                 // End encounter (this is when a dungeon's timer typically stops ticking)
-                EncounterManager.StopEncounter(true);
+                EncounterManager.StopEncounter(true, EncounterStartReason.DungeonStateEnd);
                 // Do not have to worry about Settlement or Vote state as they can only occur after End
             }
 

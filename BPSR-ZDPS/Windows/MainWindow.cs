@@ -499,8 +499,14 @@ namespace BPSR_ZDPS.Windows
             if (!string.IsNullOrEmpty(EncounterManager.Current.SceneName))
             {
                 ImGui.SameLine();
+                string subName = "";
+                if (!string.IsNullOrEmpty(EncounterManager.Current.SceneSubName))
+                {
+                    subName = $" ({EncounterManager.Current.SceneSubName})";
+                }
+
                 // We don't need to prefix with a space due to actual item spacing handling it for us
-                ImGui.TextUnformatted($"- {EncounterManager.Current.SceneName}");
+                ImGui.TextUnformatted($"- {EncounterManager.Current.SceneName}{subName}");
             }
 
             if (AppState.IsBenchmarkMode)
