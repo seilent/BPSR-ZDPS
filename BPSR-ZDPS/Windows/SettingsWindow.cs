@@ -85,6 +85,8 @@ namespace BPSR_ZDPS.Windows
 
         static bool IsElevated = false;
 
+        static ETheme theme;
+
         public static void Open()
         {
             RunOnceDelayed = 0;
@@ -484,6 +486,31 @@ namespace BPSR_ZDPS.Windows
                     {
                         var contentRegionAvail = ImGui.GetContentRegionAvail();
                         ImGui.BeginChild("##UserInterfaceTabContent", new Vector2(contentRegionAvail.X, contentRegionAvail.Y - 56), ImGuiChildFlags.Borders);
+
+                        ImGui.SeparatorText("Appearance");
+
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text("Theme: ");
+                        ImGui.SameLine();
+                        ImGui.SetNextItemWidth(150);
+                        string themeName = theme.ToString();
+                        if (ImGui.BeginCombo("##ThemeCombo", themeName))
+                        {
+                            if (ImGui.Selectable("Dark"))
+                            {
+                                theme = ETheme.Dark;
+                            }
+                            if (ImGui.Selectable("Light"))
+                            {
+                                theme = ETheme.Light;
+                            }
+                            ImGui.EndCombo();
+                        }
+                        ImGui.Indent();
+                        ImGui.BeginDisabled(true);
+                        ImGui.TextWrapped("Select the visual theme for ZDPS. Changes apply immediately.");
+                        ImGui.EndDisabled();
+                        ImGui.Unindent();
 
                         ImGui.SeparatorText("User Interface");
 
@@ -1353,6 +1380,8 @@ namespace BPSR_ZDPS.Windows
             externalBPTimerEnabled = Settings.Instance.External.BPTimerSettings.ExternalBPTimerEnabled;
             externalBPTimerIncludeCharacterId = Settings.Instance.External.BPTimerSettings.ExternalBPTimerIncludeCharacterId;
             externalBPTimerFieldBossHpReportsEnabled = Settings.Instance.External.BPTimerSettings.ExternalBPTimerFieldBossHpReportsEnabled;
+
+            theme = Settings.Instance.Theme;
         }
 
         private static void Save(MainWindow mainWindow)
@@ -1426,6 +1455,8 @@ namespace BPSR_ZDPS.Windows
 
             Settings.Instance.WindowSettings = (WindowSettings)windowSettings.Clone();
 
+            Settings.Instance.Theme = theme;
+
             Settings.Instance.LogToFile = logToFile;
 
             // External
@@ -1438,6 +1469,7 @@ namespace BPSR_ZDPS.Windows
             DB.Init();
 
             // Write out the new settings to file now that they've been applied
+            Settings.Instance.Apply();
             Settings.Save();
 
             if (externalBPTimerEnabled && externalBPTimerFieldBossHpReportsEnabled)

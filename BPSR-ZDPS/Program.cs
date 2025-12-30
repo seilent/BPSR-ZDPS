@@ -146,7 +146,7 @@ namespace BPSR_ZDPS
 
             InitWindows();
 
-            Theme.VSDarkTheme();
+            Theme.ApplyTheme(Settings.Instance.Theme);
 
             // Windows 11 does not properly update the task bar icon when instructed to, so you have to tell it multiple times
             using (var iconStream = assembly.GetManifestResourceStream(iconAssemblyPath))

@@ -58,6 +58,7 @@ public class Settings
     public string LatestZDPSVersionCheckURL { get; set; } = "https://raw.githubusercontent.com/Blue-Protocol-Source/BPSR-ZDPS-Metadata/master/LatestVersion.txt";
     public string ZDPSWebsiteURL { get; set; } = "https://github.com/Blue-Protocol-Source/BPSR-ZDPS";
     public bool HasPromptedEnableUpdateChecks { get; set; } = false;
+    public ETheme Theme { get; set; } = ETheme.Dark;
 
     // Settings specific to External components
     public SettingsExternal External { get; set; } = new();
@@ -73,8 +74,7 @@ public class Settings
     public void Apply()
     {
         MessageManager.NetCaptureDeviceName = NetCaptureDeviceName;
-
-        
+        BPSR_ZDPS.Theme.ApplyTheme(Theme);
     }
 
     public void ApplyHotKeys(MainWindow mainWindow)
@@ -109,6 +109,12 @@ public class Settings
         var settingsJson = JsonConvert.SerializeObject(Instance, Formatting.Indented);
         File.WriteAllText(Path.Combine(Utils.DATA_DIR_NAME, SETTINGS_FILE_NAME), settingsJson);
     }
+}
+
+public enum ETheme
+{
+    Dark,
+    Light
 }
 
 public enum EGameCapturePreference

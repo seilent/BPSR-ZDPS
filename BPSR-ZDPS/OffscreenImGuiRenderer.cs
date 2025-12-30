@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace BPSR_ZDPS
 {
+    using BPSR_ZDPS.DataTypes;
     using Silk.NET.Direct3D11;
     using Silk.NET.DXGI;
     using Hexa.NET.ImGui;
@@ -74,7 +75,7 @@ namespace BPSR_ZDPS
 
             io.DisplaySize = new Vector2(800, 600);
 
-            Theme.VSDarkTheme();
+            Theme.ApplyTheme(Settings.Instance.Theme);
 
             _initialized = true;
 
