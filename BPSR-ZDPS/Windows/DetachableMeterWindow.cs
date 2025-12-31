@@ -23,6 +23,9 @@ namespace BPSR_ZDPS.Windows
         // Track if user is interacting with window (dragging/resizing)
         private static bool _isInteracting = false;
 
+        // Track last applied opacity to avoid redundant GLFW calls
+        private static int LastPinnedOpacity = -1;
+
         public static void ToggleDetachMeter(MeterBase meter, MainWindow mainWindow)
         {
             if (_detachedMeter == meter && IsOpened)
@@ -208,6 +211,17 @@ namespace BPSR_ZDPS.Windows
                 {
                     RunOnceDelayed++;
                     Utils.SetWindowTopmost();
+                    Utils.SetWindowOpacity(Settings.Instance.WindowSettings.DetachableMeter.Opacity * 0.01f);
+                    LastPinnedOpacity = Settings.Instance.WindowSettings.DetachableMeter.Opacity;
+                }
+                else
+                {
+                    // Apply opacity setting (after window is initialized)
+                    if (LastPinnedOpacity != Settings.Instance.WindowSettings.DetachableMeter.Opacity)
+                    {
+                        Utils.SetWindowOpacity(Settings.Instance.WindowSettings.DetachableMeter.Opacity * 0.01f);
+                        LastPinnedOpacity = Settings.Instance.WindowSettings.DetachableMeter.Opacity;
+                    }
                 }
 
                 // Also hide child window scrollbars
