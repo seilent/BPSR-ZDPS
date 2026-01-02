@@ -49,6 +49,8 @@ namespace BPSR_ZDPS.Windows
         private bool _singleMeterModeWasTopMost = false;
         private bool _singleMeterModeAutoReentryEnabled = false;
         private int _singleMeterModeRunOnceDelayed = 0;
+        private bool _isInteractingWithWindow = false; // Track drag/resize for position/size persistence
+        private bool _justSwitchedMode = false; // Track when we just switched modes (for one-time position/size restore)
 
         public void Draw()
         {
@@ -99,22 +101,33 @@ namespace BPSR_ZDPS.Windows
             ImGui.SetNextWindowSizeConstraints(new Vector2(375, 150), new Vector2(ImGui.GETFLTMAX()));
 
             // Window position/size - conditional based on mode
+            // Only restore saved position/size when we just switched modes, not every frame
+            // This allows user to resize the window without it snapping back
+
             if (_isSingleMeterMode)
             {
                 // Use single-meter mode position/size
                 if (Settings.Instance.WindowSettings.MainWindow.SingleMeterModeWindowPosition != new Vector2())
-                    ImGui.SetNextWindowPos(Settings.Instance.WindowSettings.MainWindow.SingleMeterModeWindowPosition, ImGuiCond.FirstUseEver);
+                {
+                    ImGui.SetNextWindowPos(Settings.Instance.WindowSettings.MainWindow.SingleMeterModeWindowPosition, _justSwitchedMode ? ImGuiCond.Always : ImGuiCond.FirstUseEver);
+                }
                 if (Settings.Instance.WindowSettings.MainWindow.SingleMeterModeWindowSize != new Vector2())
-                    ImGui.SetNextWindowSize(Settings.Instance.WindowSettings.MainWindow.SingleMeterModeWindowSize, ImGuiCond.FirstUseEver);
+                {
+                    ImGui.SetNextWindowSize(Settings.Instance.WindowSettings.MainWindow.SingleMeterModeWindowSize, _justSwitchedMode ? ImGuiCond.Always : ImGuiCond.FirstUseEver);
+                }
             }
             else
             {
                 // Use full-mode position/size
                 ImGui.SetNextWindowSize(DefaultWindowSize, ImGuiCond.FirstUseEver);
                 if (Settings.Instance.WindowSettings.MainWindow.WindowPosition != new Vector2())
-                    ImGui.SetNextWindowPos(Settings.Instance.WindowSettings.MainWindow.WindowPosition, ImGuiCond.FirstUseEver);
+                {
+                    ImGui.SetNextWindowPos(Settings.Instance.WindowSettings.MainWindow.WindowPosition, _justSwitchedMode ? ImGuiCond.Always : ImGuiCond.FirstUseEver);
+                }
                 if (Settings.Instance.WindowSettings.MainWindow.WindowSize != new Vector2())
-                    ImGui.SetNextWindowSize(Settings.Instance.WindowSettings.MainWindow.WindowSize, ImGuiCond.FirstUseEver);
+                {
+                    ImGui.SetNextWindowSize(Settings.Instance.WindowSettings.MainWindow.WindowSize, _justSwitchedMode ? ImGuiCond.Always : ImGuiCond.FirstUseEver);
+                }
             }
 
             if (NextWindowPosition != new Vector2())
@@ -161,6 +174,32 @@ namespace BPSR_ZDPS.Windows
 
             WindowPosition = ImGui.GetWindowPos();
             WindowSize = ImGui.GetWindowSize();
+
+            // Reset the just-switched flag after first frame (so position/size restoration only happens once)
+            if (_justSwitchedMode)
+                _justSwitchedMode = false;
+
+            // Track window interaction for position/size saving (per mode)
+            if (ImGui.IsWindowHovered() && ImGui.IsMouseDragging(ImGuiMouseButton.Left, 0))
+            {
+                _isInteractingWithWindow = true;
+                // Save position/size during interaction for the current mode
+                if (_isSingleMeterMode)
+                {
+                    Settings.Instance.WindowSettings.MainWindow.SingleMeterModeWindowPosition = WindowPosition;
+                    Settings.Instance.WindowSettings.MainWindow.SingleMeterModeWindowSize = WindowSize;
+                }
+                else
+                {
+                    Settings.Instance.WindowSettings.MainWindow.WindowPosition = WindowPosition;
+                    Settings.Instance.WindowSettings.MainWindow.WindowSize = WindowSize;
+                }
+                Settings.Save();
+            }
+            else if (!ImGui.IsMouseDragging(ImGuiMouseButton.Left, 0))
+            {
+                _isInteractingWithWindow = false;
+            }
 
             DrawMenuBar();
 
@@ -723,6 +762,9 @@ namespace BPSR_ZDPS.Windows
             Settings.Instance.WindowSettings.MainWindow.SingleMeterModeAutoReentryEnabled = enableAutoReentry;
             Settings.Save();
 
+            // Set flag to restore position/size on next frame
+            _justSwitchedMode = true;
+
             // Always enable topmost when entering single-meter mode
             if (!IsTopMost)
             {
@@ -753,6 +795,9 @@ namespace BPSR_ZDPS.Windows
             Settings.Instance.WindowSettings.MainWindow.IsSingleMeterMode = false;
             Settings.Instance.WindowSettings.MainWindow.SingleMeterModeMeterName = "";
             Settings.Save();
+
+            // Set flag to restore position/size on next frame
+            _justSwitchedMode = true;
 
             // Restore topmost state to what it was before entering single-meter mode
             if (restoreTopmost)
